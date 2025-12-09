@@ -1,0 +1,271 @@
+{
+    "governorates":[
+  {
+    "governorate_id": 1,
+    "name": "القاهرة",
+    "cities": [
+      {"city_id": 1, "name": "مدينة نصر"},
+      {"city_id": 2, "name": "مصر الجديدة"},
+      {"city_id": 3, "name": "المعادي"},
+      {"city_id": 4, "name": "الزمالك"}
+    ]
+  },
+  {
+    "governorate_id": 2,
+    "name": "الجيزة",
+    "cities": [
+      {"city_id": 5, "name": "6 أكتوبر"},
+      {"city_id": 6, "name": "الشيخ زايد"},
+      {"city_id": 7, "name": "الهرم"},
+      {"city_id": 8, "name": "الدقي"}
+    ]
+  },
+  {
+    "governorate_id": 3,
+    "name": "الإسكندرية",
+    "cities": [
+      {"city_id": 9, "name": "سموحة"},
+      {"city_id": 10, "name": "جليم"},
+      {"city_id": 11, "name": "ميامي"},
+      {"city_id": 12, "name": "سيدي جابر"}
+    ]
+  },
+  {
+    "governorate_id": 4,
+    "name": "الدقهلية",
+    "cities": [
+      {"city_id": 13, "name": "المنصورة"},
+      {"city_id": 14, "name": "طلخا"},
+      {"city_id": 15, "name": "ميت غمر"},
+      {"city_id": 16, "name": "شربين"}
+    ]
+  },
+  {
+    "governorate_id": 5,
+    "name": "البحر الأحمر",
+    "cities": [
+      {"city_id": 17, "name": "الغردقة"},
+      {"city_id": 18, "name": "الجونة"},
+      {"city_id": 19, "name": "سفاجا"},
+      {"city_id": 20, "name": "مرسى علم"}
+    ]
+  },
+  {
+    "governorate_id": 6,
+    "name": "البحيرة",
+    "cities": [
+      {"city_id": 21, "name": "دمنهور"},
+      {"city_id": 22, "name": "كفر الدوار"},
+      {"city_id": 23, "name": "رشيد"},
+      {"city_id": 24, "name": "إدكو"}
+    ]
+  },
+  {
+    "governorate_id": 7,
+    "name": "الفيوم",
+    "cities": [
+      {"city_id": 25, "name": "الفيوم"},
+      {"city_id": 26, "name": "طامية"},
+      {"city_id": 27, "name": "إبشواي"},
+      {"city_id": 28, "name": "سنورس"}
+    ]
+  },
+  {
+    "governorate_id": 8,
+    "name": "الغربية",
+    "cities": [
+      {"city_id": 29, "name": "طنطا"},
+      {"city_id": 30, "name": "المحلة الكبرى"},
+      {"city_id": 31, "name": "زفتى"},
+      {"city_id": 32, "name": "السنطة"}
+    ]
+  },
+  {
+    "governorate_id": 9,
+    "name": "الإسماعيلية",
+    "cities": [
+      {"city_id": 33, "name": "الإسماعيلية"},
+      {"city_id": 34, "name": "فايد"},
+      {"city_id": 35, "name": "القنطرة"},
+      {"city_id": 36, "name": "أبو سلطان"}
+    ]
+  },
+  {
+    "governorate_id": 10,
+    "name": "المنيا",
+    "cities": [
+      {"city_id": 37, "name": "المنيا"},
+      {"city_id": 38, "name": "ملوي"},
+      {"city_id": 39, "name": "سمالوط"},
+      {"city_id": 40, "name": "أبو قرقاص"}
+    ]
+  },
+  {
+    "governorate_id": 11,
+    "name": "المنوفية",
+    "cities": [
+      {"city_id": 41, "name": "شبين الكوم"},
+      {"city_id": 42, "name": "منوف"},
+      {"city_id": 43, "name": "قويسنا"},
+      {"city_id": 44, "name": "السادات"}
+    ]
+  },
+  {
+    "governorate_id": 12,
+    "name": "القليوبية",
+    "cities": [
+      {"city_id": 45, "name": "بنها"},
+      {"city_id": 46, "name": "شبرا الخيمة"},
+      {"city_id": 47, "name": "قليوب"},
+      {"city_id": 48, "name": "كفر شكر"}
+    ]
+  },
+  {
+    "governorate_id": 13,
+    "name": "الوادي الجديد",
+    "cities": [
+      {"city_id": 49, "name": "الخارجة"},
+      {"city_id": 50, "name": "الداخلة"},
+      {"city_id": 51, "name": "الفرافرة"},
+      {"city_id": 52, "name": "باريس"}
+    ]
+  },
+  {
+    "governorate_id": 14,
+    "name": "شمال سيناء",
+    "cities": [
+      {"city_id": 53, "name": "العريش"},
+      {"city_id": 54, "name": "الشيخ زويد"},
+      {"city_id": 55, "name": "رفح"},
+      {"city_id": 56, "name": "بئر العبد"}
+    ]
+  },
+  {
+    "governorate_id": 15,
+    "name": "بورسعيد",
+    "cities": [
+      {"city_id": 57, "name": "بورسعيد"},
+      {"city_id": 58, "name": "بورفؤاد"}
+    ]
+  },
+  {
+    "governorate_id": 16,
+    "name": "قنا",
+    "cities": [
+      {"city_id": 59, "name": "قنا"},
+      {"city_id": 60, "name": "نجع حمادي"},
+      {"city_id": 61, "name": "قوص"},
+      {"city_id": 62, "name": "دشنا"}
+    ]
+  },
+  {
+    "governorate_id": 17,
+    "name": "سوهاج",
+    "cities": [
+      {"city_id": 63, "name": "سوهاج"},
+      {"city_id": 64, "name": "أخميم"},
+      {"city_id": 65, "name": "طهطا"},
+      {"city_id": 66, "name": "جرجا"}
+    ]
+  },
+  {
+    "governorate_id": 18,
+    "name": "جنوب سيناء",
+    "cities": [
+      {"city_id": 67, "name": "شرم الشيخ"},
+      {"city_id": 68, "name": "دهب"},
+      {"city_id": 69, "name": "نويبع"},
+      {"city_id": 70, "name": "طابا"}
+    ]
+  },
+  {
+    "governorate_id": 19,
+    "name": "السويس",
+    "cities": [
+      {"city_id": 71, "name": "السويس"},
+      {"city_id": 72, "name": "العين السخنة"}
+    ]
+  },
+  {
+    "governorate_id": 20,
+    "name": "أسوان",
+    "cities": [
+      {"city_id": 73, "name": "أسوان"},
+      {"city_id": 74, "name": "إدفو"},
+      {"city_id": 75, "name": "كوم أمبو"},
+      {"city_id": 76, "name": "أبو سمبل"}
+    ]
+  },
+  {
+    "governorate_id": 21,
+    "name": "أسيوط",
+    "cities": [
+      {"city_id": 77, "name": "أسيوط"},
+      {"city_id": 78, "name": "أبنوب"},
+      {"city_id": 79, "name": "ديروط"},
+      {"city_id": 80, "name": "منفلوط"}
+    ]
+  },
+  {
+    "governorate_id": 22,
+    "name": "بني سويف",
+    "cities": [
+      {"city_id": 81, "name": "بني سويف"},
+      {"city_id": 82, "name": "الواسطى"},
+      {"city_id": 83, "name": "ناصر"},
+      {"city_id": 84, "name": "ببا"}
+    ]
+  },
+  {
+    "governorate_id": 23,
+    "name": "دمياط",
+    "cities": [
+      {"city_id": 85, "name": "دمياط"},
+      {"city_id": 86, "name": "دمياط الجديدة"},
+      {"city_id": 87, "name": "فارسكور"},
+      {"city_id": 88, "name": "كفر سعد"}
+    ]
+  },
+  {
+    "governorate_id": 24,
+    "name": "كفر الشيخ",
+    "cities": [
+      {"city_id": 89, "name": "كفر الشيخ"},
+      {"city_id": 90, "name": "دسوق"},
+      {"city_id": 91, "name": "بيلا"},
+      {"city_id": 92, "name": "فوه"}
+    ]
+  },
+  {
+    "governorate_id": 25,
+    "name": "الأقصر",
+    "cities": [
+      {"city_id": 93, "name": "الأقصر"},
+      {"city_id": 94, "name": "أرمنت"},
+      {"city_id": 95, "name": "إسنا"}
+    ]
+  },
+  {
+    "governorate_id": 26,
+    "name": "مطروح",
+    "cities": [
+      {"city_id": 96, "name": "مرسى مطروح"},
+      {"city_id": 97, "name": "سيوة"},
+      {"city_id": 98, "name": "العلمين"},
+      {"city_id": 99, "name": "الضبعة"}
+    ]
+  },
+  {
+    "governorate_id": 27,
+    "name": "الشرقية",
+    "cities": [
+      {"city_id": 100, "name": "الزقازيق"},
+      {"city_id": 101, "name": "العاشر من رمضان"},
+      {"city_id": 102, "name": "منيا القمح"},
+      {"city_id": 103, "name": "أبو حماد"}
+    ]
+  }
+
+]
+
+}
