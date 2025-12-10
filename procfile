@@ -1,1 +1,1 @@
-web: gunicorn trafic_issues.wsgi
+web: gunicorn trafic_issues.wsgi --timeout 120
