@@ -126,9 +126,10 @@ class SignUpOTPView(APIView):
 
         if not email:
             return Response({"error": "Email is required"}, status=400)
+        
+        if User.objects.filter(email=email).exists():
+            return Response({"error": "Email is already registered"}, status=400)
 
-        # امسح الأكواد القديمة
-        SignupOTP.objects.filter(email=email).delete()
 
         code = random.randint(1000, 9999)
 
