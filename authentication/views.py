@@ -129,8 +129,8 @@ class SignUpOTPView(APIView):
         if not email:
             return Response({"error": "Email is required"}, status=400)
         
-        # if User.objects.filter(email=email).exists():
-        #     return Response({"error": "Email is already registered"}, status=400)
+        if User.objects.filter(email=email).exists():
+            return Response({"error": "Email is already registered"}, status=400)
         
 
 
