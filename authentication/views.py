@@ -7,6 +7,8 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import render
 from rest_framework import generics , permissions , mixins , status
+
+from .utils import send_async_email
 from .serializers import Userserializer , SupervisorSerializer
 from .models import ResetPasswordCode, User , Supervisor , SignupOTP 
 from rest_framework.views import APIView
@@ -129,6 +131,7 @@ class SignUpOTPView(APIView):
         
         if User.objects.filter(email=email).exists():
             return Response({"error": "Email is already registered"}, status=400)
+        
 
 
         code = random.randint(1000, 9999)
@@ -138,12 +141,11 @@ class SignUpOTPView(APIView):
             code=code
         )
 
-        send_mail(
+        send_async_email(
             "Your verification code",
             f"Your OTP is {code}. It expires in 5 minutes.",
             "trafficsystem@mailtrap.io",
-            [email],
-            fail_silently=False
+            [email]
         )
 
         return Response({"message": "OTP sent successfully"}, status=200)
