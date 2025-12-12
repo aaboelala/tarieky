@@ -62,7 +62,8 @@ class ResetPasswordView(APIView):
             [email],
             fail_silently=False,
         )
-        return Response({"message": "OTP sent successfully"}, status=200)
+        return Response({"message": f"OTP sent successfully and the code is {code}"}, status=200)
+    
 
 class VerifyOTPViewForForgetPass(APIView):
     permission_classes = [permissions.AllowAny]
@@ -148,7 +149,7 @@ class SignUpOTPView(APIView):
             [email]
         )
 
-        return Response({"message": "OTP sent successfully"}, status=200)
+        return Response({"message": f"OTP sent successfully and the code is {code}"}, status=200)
 
 
 class VerifyOTPView(APIView):
