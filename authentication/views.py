@@ -55,12 +55,11 @@ class ResetPasswordView(APIView):
         
         code = random.randint(1000, 9999)
         ResetPasswordCode.objects.create(user=user, code=code)
-        send_mail(
-            "Password Reset Code",
-            f"Your reset code is {code}. It will expire in 5 minutes.",
+        send_async_email(
+            "Your verification code",
+            f"Your OTP is {code}. It expires in 5 minutes.",
             "trafficsystem@mailtrap.io",
-            [email],
-            fail_silently=False,
+            [email]
         )
         return Response({"message": f"OTP sent successfully and the code is {code}"}, status=200)
     
