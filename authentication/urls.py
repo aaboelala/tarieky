@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import GovernoratesCitiesView, VerifyOTPViewForForgetPass, ResetPasswordView,SetNewPasswordView, SupervisorRegistrationView, UserRegistrationView , SignUpOTPView , VerifyOTPView
+from .views import GovernoratesCitiesView, VerifyOTPViewForForgetPass, ResetPasswordView, SetNewPasswordView, UserRegistrationView, SignUpOTPView, VerifyOTPView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -9,8 +9,6 @@ from rest_framework_simplejwt.views import (
 urlpatterns = [
     path('get-governorates-cities/', GovernoratesCitiesView.as_view(), name='get_governorates_cities'),
 
-   
-    path('supervisor-sign-up/', SupervisorRegistrationView.as_view(), name='supervisor-sign-up'),
     path('sign-up-otp/', SignUpOTPView.as_view(), name='sign-up-otp'),
     path('verify-sign-up-otp/', VerifyOTPView.as_view(), name='verify_sign_up_otp'),
     path('user-sign-up/', UserRegistrationView.as_view(), name='user-sign-up'),

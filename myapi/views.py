@@ -1,3 +1,219 @@
-from django.shortcuts import render
+import math
 
-# Create your views here.
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
+
+from .models import Issue, Notification
+from .serializers import (
+    IssueListSerializer,
+    IssueDetailSerializer,
+    IssueCreateSerializer,
+    IssueStatusUpdateSerializer,
+    NotificationSerializer,
+    UserProfileUpdateSerializer,
+)
+
+
+# ---------- helpers ----------
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    """Return distance in metres between two GPS points."""
+    R = 6_371_000  # Earth radius in metres
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlam = math.radians(lon2 - lon1)
+    a = (math.sin(dphi / 2) ** 2
+         + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2)
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+# ---------- permissions ----------
+
+class IsSupervisor(permissions.BasePermission):
+    """Allow only verified supervisors."""
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return hasattr(request.user, 'supervisor')
+
+
+# ---------- views ----------
+
+class IssueListCreateView(generics.ListCreateAPIView):
+    """
+    GET  /api/issues/               → list all issues (public)
+    GET  /api/issues/?city=…&governorate=…  → filtered
+    POST /api/issues/               → create (authenticated, mobile)
+    """
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return IssueCreateSerializer
+        return IssueListSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
+
+    def get_queryset(self):
+        qs = Issue.objects.select_related('reporter').all()
+        city = self.request.query_params.get('city')
+        governorate = self.request.query_params.get('governorate')
+        status_filter = self.request.query_params.get('status')
+        if city:
+            qs = qs.filter(city__icontains=city)
+        if governorate:
+            qs = qs.filter(governorate__icontains=governorate)
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return qs
+
+    def perform_create(self, serializer):
+        instance = serializer.save(reporter=self.request.user)
+        # Notify others in the city about the new issue
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        users_in_city = User.objects.filter(city__iexact=instance.city).exclude(id=self.request.user.id)
+        
+        notifications = [
+            Notification(
+                user=user,
+                issue=instance,
+                notification_type='city_alert',
+                message=f"New traffic report in {instance.city}: {instance.description[:50]}..."
+            ) for user in users_in_city
+        ]
+        Notification.objects.bulk_create(notifications)
+
+
+class IssueDetailView(generics.RetrieveAPIView):
+    """GET /api/issues/<id>/  → single issue detail (public)."""
+    queryset = Issue.objects.select_related('reporter').all()
+    serializer_class = IssueDetailSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+class MyIssuesListView(generics.ListAPIView):
+    """GET /api/issues/my/  → list issues reported by the current user."""
+    serializer_class = IssueListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Issue.objects.filter(reporter=self.request.user).order_by('-created_at')
+
+
+class NearbyIssuesView(APIView):
+    """
+    GET /api/issues/nearby/?lat=…&lon=…&radius=100
+    Returns issues within `radius` metres (default 100).
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        try:
+            lat = float(request.query_params['lat'])
+            lon = float(request.query_params['lon'])
+        except (KeyError, ValueError):
+            return Response(
+                {'error': 'lat and lon query parameters are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        radius = float(request.query_params.get('radius', 100))
+
+        # Rough bounding box to reduce DB scan (~0.001° ≈ 111 m)
+        delta = radius / 111_000
+        issues = Issue.objects.select_related('reporter').filter(
+            latitude__range=(lat - delta, lat + delta),
+            longitude__range=(lon - delta, lon + delta),
+        )
+
+        nearby = []
+        for issue in issues:
+            dist = haversine_distance(lat, lon, issue.latitude, issue.longitude)
+            if dist <= radius:
+                data = IssueListSerializer(issue, context={'request': request}).data
+                data['distance_m'] = round(dist, 1)
+                nearby.append(data)
+
+        nearby.sort(key=lambda x: x['distance_m'])
+        return Response(nearby)
+
+
+class IssueStatusUpdateView(generics.UpdateAPIView):
+    """PATCH /api/issues/<id>/status/  → supervisor updates status."""
+    queryset = Issue.objects.all()
+    serializer_class = IssueStatusUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated, IsSupervisor]
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        if instance.status in ['In Progress', 'Resolved']:
+            # Notify reporter
+            Notification.objects.create(
+                user=instance.reporter,
+                issue=instance,
+                notification_type='issue_update',
+                message=f"Your issue #{instance.id} status is now {instance.status}."
+            )
+            # Notify others in the city
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            users_in_city = User.objects.filter(city__iexact=instance.city).exclude(id=instance.reporter.id)
+            notifications = [
+                Notification(
+                    user=user,
+                    issue=instance,
+                    notification_type='city_alert',
+                    message=f"A new issue in {instance.city} has been marked as {instance.status}."
+                ) for user in users_in_city
+            ]
+            Notification.objects.bulk_create(notifications)
+
+
+class UserProfileView(APIView):
+    """GET/PATCH /api/profile/  → current user info for the frontend."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        is_supervisor = hasattr(user, 'supervisor')
+        return Response({
+            'id': user.id,
+            'email': user.email,
+            'first_name': getattr(user, 'first_name', ''),
+            'last_name': getattr(user, 'last_name', ''),
+            'phone': getattr(user, 'phone', ''),
+            'governorate': getattr(user, 'governorate', ''),
+            'city': getattr(user, 'city', ''),
+            'is_supervisor': is_supervisor,
+        })
+
+    def patch(self, request):
+        user = request.user
+        serializer = UserProfileUpdateSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class NotificationListView(generics.ListAPIView):
+    """GET /api/notifications/"""
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return self.request.user.notifications.all()
+
+class NotificationReadView(APIView):
+    """PATCH /api/notifications/<id>/read/"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, pk):
+        notification = get_object_or_404(Notification, pk=pk, user=request.user)
+        notification.is_read = True
+        notification.save()
+        return Response({'status': 'read'})

@@ -44,12 +44,8 @@ class User(AbstractUser):
 
 class Supervisor(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE,related_name='supervisor')
-    phone = models.CharField(max_length=20)
-    government_document = models.FileField(upload_to='supervisor_docs/')
-    is_verified = models.BooleanField(default=False)  # الأدمن يوافق عليه بعد رفع الوثيقة
-
     def __str__(self):
-        return f"Supervisor: {self.user.username} ({self.province})"
+        return f"Supervisor: {self.user.email} ({self.user.governorate})"
 
 
 
