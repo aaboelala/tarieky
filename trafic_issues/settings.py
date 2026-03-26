@@ -29,7 +29,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-7e(_**!=_oomz45(@)^y%w92-uf5%)puqvrt0*c13l@1a^lpq9'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 # settings.py
 CSRF_TRUSTED_ORIGINS = [
     "https://tarieky-production.up.railway.app",  # ضع هنا URL مشروعك على Railway
