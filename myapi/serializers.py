@@ -18,9 +18,9 @@ class IssueListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Issue
         fields = [
-            'id', 'photo_url', 'description', 'status',
+            'id', 'photo_url', 'description', 'status', 'category',
             'latitude', 'longitude', 'city', 'governorate',
-            'created_at', 'reporter',
+            'created_at', 'reporter'
         ]
 
     def get_photo_url(self, obj):
@@ -38,7 +38,7 @@ class IssueDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Issue
         fields = [
-            'id', 'photo_url', 'description', 'status',
+            'id', 'photo_url', 'description', 'status', 'category',
             'latitude', 'longitude', 'city', 'governorate',
             'created_at', 'updated_at', 'reporter',
         ]
@@ -55,7 +55,7 @@ class IssueCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Issue
         fields = [
-            'photo', 'description', 'latitude', 'longitude',
+            'photo', 'description', 'category', 'latitude', 'longitude',
             'city', 'governorate',
         ]
 
@@ -65,6 +65,29 @@ class IssueStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Issue
         fields = ['status']
+
+    def validate_status(self, value):
+        instance = self.instance
+        if not instance:
+            return value
+
+        current_status = instance.status
+        new_status = value
+
+        if current_status == 'Pending':
+            if new_status not in ['In Progress', 'Rejected']:
+                raise serializers.ValidationError(
+                    "From Pending, you can only transition to 'In Progress' or 'Rejected'."
+                )
+        elif current_status == 'In Progress':
+            if new_status not in ['Resolved', 'Rejected']:
+                raise serializers.ValidationError(
+                    "From In Progress, you can only transition to 'Resolved' or 'Rejected'."
+                )
+        elif current_status == 'Resolved' or current_status == 'Rejected':
+            raise serializers.ValidationError(f"Issue is already {current_status} and cannot be changed.")
+
+        return value
 
 
 from .models import Notification

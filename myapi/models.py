@@ -10,24 +10,40 @@ class Issue(models.Model):
         ('Rejected', 'Rejected'),
     ]
 
+    CATEGORY_CHOICES = [
+        ('lighting', 'إنارة'),
+        ('pothole', 'نقرة'),
+        ('speed_bump', 'مطب'),
+        ('traffic_sign', 'لافتة مرورية'),
+        ('road_damage', 'تلف طريق'),
+        ('other', 'أخرى'),
+    ]
+
     reporter = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='reported_issues',
     )
     photo = models.ImageField(upload_to='issue_photos/')
-    description = models.TextField()
+    description = models.TextField(null=True, blank=True)
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
         default='Pending',
     )
+
     latitude = models.FloatField()
     longitude = models.FloatField()
     city = models.CharField(max_length=100)
     governorate = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        default='other',
+    )
+    
 
     class Meta:
         ordering = ['-created_at']
