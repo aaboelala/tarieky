@@ -28,6 +28,7 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
     
 class User(AbstractUser):
+    image = models.ImageField(upload_to='user_images/', blank=True, null=True)
     governorate = models.CharField(max_length=15, blank=False) 
     city = models.CharField(max_length=15, blank=False)
     phone= models.CharField(max_length=11, blank=True, null=True)

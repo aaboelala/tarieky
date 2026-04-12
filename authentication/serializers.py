@@ -7,7 +7,7 @@ class Userserializer(serializers.ModelSerializer):
     verification_token = serializers.CharField(write_only=True)
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'phone', 'email', 'governorate', 'city', 'password', 'verification_token']
+        fields = ['id', 'first_name', 'last_name', 'phone', 'email', 'governorate', 'city', 'password', 'verification_token','image']
         extra_kwargs = {
             'password': {'write_only': True , 'min_length': 8 },
             'first_name': {'required': True},       

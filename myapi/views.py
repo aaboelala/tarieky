@@ -1,5 +1,6 @@
 import math
 
+from django.db.models import Count, Q
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -51,6 +52,7 @@ class IssueListCreateView(generics.ListCreateAPIView):
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return IssueCreateSerializer
+       
         return IssueListSerializer
 
     def get_permissions(self):
@@ -192,6 +194,9 @@ class UserProfileView(APIView):
     def get(self, request):
         user = request.user
         is_supervisor = hasattr(user, 'supervisor')
+        image_url = None
+        if user.image:
+            image_url = request.build_absolute_uri(user.image.url)
         return Response({
             'id': user.id,
             'email': user.email,
@@ -201,11 +206,15 @@ class UserProfileView(APIView):
             'governorate': getattr(user, 'governorate', ''),
             'city': getattr(user, 'city', ''),
             'is_supervisor': is_supervisor,
+            'image': image_url,
         })
 
     def patch(self, request):
         user = request.user
-        serializer = UserProfileUpdateSerializer(user, data=request.data, partial=True)
+        serializer = UserProfileUpdateSerializer(
+            user, data=request.data, partial=True,
+            context={'request': request}
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -228,3 +237,41 @@ class NotificationReadView(APIView):
         notification.is_read = True
         notification.save()
         return Response({'status': 'read'})
+
+
+class UserIssueStatsView(APIView):
+    """
+    GET /api/issues/my/stats/
+    Returns statistics for the authenticated user's reported issues:
+    - total_issues: total count
+    - by_status: {pending, in_progress, resolved, rejected}
+    - by_category: {lighting, pothole, speed_bump, traffic_sign, road_damage, other}
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user_issues = Issue.objects.filter(reporter=request.user)
+
+        # Aggregate counts by status
+        status_counts = user_issues.aggregate(
+            pending=Count('id', filter=Q(status='Pending')),
+            in_progress=Count('id', filter=Q(status='In Progress')),
+            resolved=Count('id', filter=Q(status='Resolved')),
+            rejected=Count('id', filter=Q(status='Rejected')),
+        )
+
+        # Aggregate counts by category
+        category_counts = user_issues.aggregate(
+            lighting=Count('id', filter=Q(category='lighting')),
+            pothole=Count('id', filter=Q(category='pothole')),
+            speed_bump=Count('id', filter=Q(category='speed_bump')),
+            traffic_sign=Count('id', filter=Q(category='traffic_sign')),
+            road_damage=Count('id', filter=Q(category='road_damage')),
+            other=Count('id', filter=Q(category='other')),
+        )
+
+        return Response({
+            'total_issues': user_issues.count(),
+            'by_status': status_counts,
+            'by_category': category_counts,
+        })

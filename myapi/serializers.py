@@ -102,4 +102,4 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """Used for users to update their profile."""
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'phone', 'city', 'governorate']
+        fields = ['first_name', 'last_name', 'phone', 'city', 'governorate', 'image']
