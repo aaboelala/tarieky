@@ -4,7 +4,13 @@ from django.db.models import Count, Q
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 from .models import Issue, Notification
 from .serializers import (
@@ -48,6 +54,7 @@ class IssueListCreateView(generics.ListCreateAPIView):
     GET  /api/issues/?city=…&governorate=…  → filtered
     POST /api/issues/               → create (authenticated, mobile)
     """
+    pagination_class = StandardResultsSetPagination
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -62,19 +69,20 @@ class IssueListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         qs = Issue.objects.select_related('reporter').all()
-        city = self.request.query_params.get('city')
-        governorate = self.request.query_params.get('governorate')
-        status_filter = self.request.query_params.get('status')
+        
+        # 1. Safely extract and Strip Whitespace from query params
+        city = self.request.query_params.get('city', '').strip()
+        governorate = self.request.query_params.get('governorate', '').strip()
+        status_filter = self.request.query_params.get('status', '').strip()
         
         is_supervisor = self.request.user.is_authenticated and hasattr(self.request.user, 'supervisor')
         
         if is_supervisor:
-            # Supervisors can filter by status if they want
             if status_filter:
-                qs = qs.filter(status=status_filter)
+                qs = qs.filter(status__iexact=status_filter)
         else:
-            # Citizens and unauthenticated users ONLY EVER see 'In Progress' issues
-            qs = qs.filter(status='In Progress')
+            # Citizens explicitly exclude rejected, allowing "In Progress", "Pending", "Resolved"
+            qs = qs.exclude(status__iexact='Rejected')
             
         if city:
             qs = qs.filter(city__icontains=city)
