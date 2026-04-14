@@ -14,8 +14,22 @@ from .models import ResetPasswordCode, User , Supervisor , SignupOTP
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.core.mail import send_mail
+from rest_framework_simplejwt.tokens import RefreshToken
 
+class LogoutView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
+    def post(self, request):
+        try:
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response({"error": "Refresh token is required to logout"}, status=status.HTTP_400_BAD_REQUEST)
+                
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception:
+            return Response({"error": "Token is invalid or already logged out."}, status=status.HTTP_400_BAD_REQUEST)
 class UserRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = Userserializer

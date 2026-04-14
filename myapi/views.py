@@ -66,19 +66,21 @@ class IssueListCreateView(generics.ListCreateAPIView):
         governorate = self.request.query_params.get('governorate')
         status_filter = self.request.query_params.get('status')
         
-        # If no status filter is provided, default to 'In Progress'
-        # UNLESS the user is a supervisor (who needs to see Pending issues)
         is_supervisor = self.request.user.is_authenticated and hasattr(self.request.user, 'supervisor')
         
-        if status_filter:
-            qs = qs.filter(status=status_filter)
-        elif not is_supervisor:
+        if is_supervisor:
+            # Supervisors can filter by status if they want
+            if status_filter:
+                qs = qs.filter(status=status_filter)
+        else:
+            # Citizens and unauthenticated users ONLY EVER see 'In Progress' issues
             qs = qs.filter(status='In Progress')
             
         if city:
             qs = qs.filter(city__icontains=city)
         if governorate:
             qs = qs.filter(governorate__icontains=governorate)
+            
         return qs
 
     def perform_create(self, serializer):
