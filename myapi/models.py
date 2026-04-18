@@ -79,3 +79,23 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"To {self.user.email} - {self.notification_type} - Read: {self.is_read}"
+
+
+class DeviceToken(models.Model):
+    """Stores FCM device tokens for push notifications."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='device_tokens',
+    )
+    fcm_token = models.CharField(max_length=255, unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'is_active']),
+        ]
+
+    def __str__(self):
+        return f"Token for {self.user.email} ({'active' if self.is_active else 'inactive'})"

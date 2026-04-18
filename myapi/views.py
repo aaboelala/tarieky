@@ -14,6 +14,7 @@ from .serializers import (
     IssueStatusUpdateSerializer,
     NotificationSerializer,
     UserProfileUpdateSerializer,
+    DeviceTokenSerializer,
 )
 
 
@@ -277,3 +278,36 @@ class UserIssueStatsView(APIView):
             'by_status': status_counts,
             'by_category': category_counts,
         })
+
+
+class RegisterDeviceTokenView(APIView):
+    """
+    POST /api/device-token/
+    Body: { "token": "FCM_TOKEN" }
+
+    Registers (or re-activates) an FCM device token for the authenticated user.
+    If the token already exists for a different user, it is reassigned.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = DeviceTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.validated_data['token']
+
+        from .models import DeviceToken
+
+        # update_or_create keyed on the token itself.
+        # If the token exists (maybe for another user), reassign it.
+        obj, created = DeviceToken.objects.update_or_create(
+            fcm_token=token,
+            defaults={
+                'user': request.user,
+                'is_active': True,
+            },
+        )
+
+        return Response(
+            {'status': 'created' if created else 'updated'},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )

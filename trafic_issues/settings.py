@@ -123,13 +123,13 @@ DATABASES = {
     }
 }
 
-# Use Neon PostgreSQL if DATABASE_URL is provided in the environment
-if os.getenv("DATABASE_URL"):
-    DATABASES['default'] = dj_database_url.config(
-        default=os.getenv("DATABASE_URL"),
-        conn_max_age=600,      # Keeps connection alive for 10 minutes (good for Neon)
-        conn_health_checks=True,
-    )
+# # Use Neon PostgreSQL if DATABASE_URL is provided in the environment
+# if os.getenv("DATABASE_URL"):
+#     DATABASES['default'] = dj_database_url.config(
+#         default=os.getenv("DATABASE_URL"),
+#         conn_max_age=600,      # Keeps connection alive for 10 minutes (good for Neon)
+#         conn_health_checks=True,
+#     )
 
 
 # Password validation

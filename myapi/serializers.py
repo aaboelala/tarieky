@@ -103,3 +103,9 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'phone', 'city', 'governorate', 'image']
+
+
+class DeviceTokenSerializer(serializers.Serializer):
+    """Accepts an FCM device token for push notification registration."""
+    token = serializers.CharField(max_length=255)
+

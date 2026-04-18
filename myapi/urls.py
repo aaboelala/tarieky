@@ -9,6 +9,7 @@ from .views import (
     NotificationReadView,
     MyIssuesListView,
     UserIssueStatsView,
+    RegisterDeviceTokenView,
 )
 
 urlpatterns = [
@@ -21,5 +22,5 @@ urlpatterns = [
     path('profile/', UserProfileView.as_view(), name='user-profile'),
     path('notifications/', NotificationListView.as_view(), name='notification-list'),
     path('notifications/<int:pk>/read/', NotificationReadView.as_view(), name='notification-read'),
+    path('device-token/', RegisterDeviceTokenView.as_view(), name='register-device-token'),
 ]
-
