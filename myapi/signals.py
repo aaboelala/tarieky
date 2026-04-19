@@ -9,7 +9,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from myapi.models import Issue
-from myapi.services import notify_issue_approved
+from myapi.services import notify_issue_status_change
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +20,10 @@ def issue_status_changed(sender, instance, created, **kwargs):
     if created:
         return  # new issues start as Pending — no push needed
 
-    if instance.status == 'In Progress':
-        try:
-            notify_issue_approved(instance)
-        except Exception:
-            logger.exception(
-                "Failed to send FCM notifications for issue #%d", instance.pk,
-            )
+    # Notification logic moved to service, we just trigger it on any non-creation save
+    try:
+        notify_issue_status_change(instance)
+    except Exception:
+        logger.exception(
+            "Failed to send FCM notifications for issue #%d", instance.pk,
+        )

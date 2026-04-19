@@ -4,10 +4,10 @@ from django.conf import settings
 
 class Issue(models.Model):
     STATUS_CHOICES = [
-        ('Pending', 'Pending'),
-        ('In Progress', 'In Progress'),
-        ('Resolved', 'Resolved'),
-        ('Rejected', 'Rejected'),
+        ('Pending', 'قيد الانتظار'),
+        ('In Progress', 'جاري العمل'),
+        ('Resolved', 'تم الحل'),
+        ('Rejected', 'تم الرفض'),
     ]
 
     CATEGORY_CHOICES = [
@@ -54,8 +54,8 @@ class Issue(models.Model):
 
 class Notification(models.Model):
     NOTIFICATION_TYPES = (
-        ('issue_update', 'Issue Update'),
-        ('city_alert', 'City Alert'),
+        ('issue_update', 'تحديث بلاغ'),
+        ('city_alert', 'تنبيه في المدينة'),
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

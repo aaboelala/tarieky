@@ -96,7 +96,7 @@ class IssueListCreateView(generics.ListCreateAPIView):
                 user=user,
                 issue=instance,
                 notification_type='city_alert',
-                message=f"New traffic report in {instance.city}: {instance.description[:50]}..."
+                message=f"بلاغ مروري جديد في {instance.city}: {instance.description[:50]}..."
             ) for user in users_in_city
         ]
         Notification.objects.bulk_create(notifications)
@@ -167,13 +167,22 @@ class IssueStatusUpdateView(generics.UpdateAPIView):
 
     def perform_update(self, serializer):
         instance = serializer.save()
+        
+        status_ar_map = {
+            'Pending': 'قيد الانتظار',
+            'In Progress': 'جاري العمل',
+            'Resolved': 'تم الحل',
+            'Rejected': 'تم الرفض',
+        }
+        status_ar = status_ar_map.get(instance.status, instance.status)
+
         if instance.status in ['In Progress', 'Resolved']:
             # Notify reporter
             Notification.objects.create(
                 user=instance.reporter,
                 issue=instance,
                 notification_type='issue_update',
-                message=f"Your issue #{instance.id} status is now {instance.status}."
+                message=f"تحديث لحالة بلاغك رقم {instance.id}: البلاغ الآن {status_ar}."
             )
             # Notify others in the city
             from django.contrib.auth import get_user_model
@@ -184,7 +193,7 @@ class IssueStatusUpdateView(generics.UpdateAPIView):
                     user=user,
                     issue=instance,
                     notification_type='city_alert',
-                    message=f"A new issue in {instance.city} has been marked as {instance.status}."
+                    message=f"تحديث لبلاغ في {instance.city}: الحالة الآن {status_ar}."
                 ) for user in users_in_city
             ]
             Notification.objects.bulk_create(notifications)

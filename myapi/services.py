@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 _BATCH_SIZE = 500
 
 
-def send_to_tokens(tokens, title, body):
+def send_to_tokens(tokens, title, body, data=None):
     """
     Send a push notification to a list of FCM tokens.
 
@@ -26,6 +26,7 @@ def send_to_tokens(tokens, title, body):
         tokens: list[str] — FCM registration tokens.
         title: str — notification title.
         body: str — notification body text.
+        data: dict[str, str] — optional key-vairue data payload.
 
     Returns:
         list[str] — tokens that should be deactivated (invalid/unregistered).
@@ -40,6 +41,7 @@ def send_to_tokens(tokens, title, body):
         message = messaging.MulticastMessage(
             notification=messaging.Notification(title=title, body=body),
             tokens=batch,
+            data=data,
         )
 
         try:
@@ -84,36 +86,40 @@ def _deactivate_tokens(invalid_tokens):
         logger.info("Deactivated %d invalid FCM tokens", updated)
 
 
-def notify_issue_approved(issue):
+def notify_issue_status_change(issue):
     """
-    Called when an issue transitions to 'In Progress' (approved).
+    Called when an issue status changes.
 
-    Sends two separate push notifications:
-      1. City broadcast — all active users in the same city, EXCLUDING the owner.
-      2. Owner notification — only to the issue reporter.
+    Constructs and sends push notifications to the owner and (optionally)
+    to users in the same city, including issue data.
     """
     from myapi.models import DeviceToken
 
     owner = issue.reporter
+    data = {
+        "issue_id": str(issue.pk),
+        "new_status": issue.status,
+    }
 
-    # --- City broadcast (exclude owner) ---
-    city_tokens = list(
-        DeviceToken.objects.filter(
-            user__city__iexact=issue.city,
-            is_active=True,
-        )
-        .exclude(user=owner)
-        .values_list('fcm_token', flat=True)
-        .distinct()
-    )
+    # Define titles and bodies based on status
+    status_content = {
+        'In Progress': {
+            'owner_body': "تمت الموافقة على بلاغك",
+            'city_body': "تمت الموافقة على بلاغ في مدينتك",
+        },
+        'Resolved': {
+            'owner_body': "تم حل بلاغك",
+            'city_body': "تم حل بلاغ في مدينتك",
+        },
+        'Rejected': {
+            'owner_body': "نعتذر، تم رفض بلاغك",
+            'city_body': None, # No city broadcast for rejection
+        },
+    }
 
-    if city_tokens:
-        invalid = send_to_tokens(
-            city_tokens,
-            title="City Update",
-            body="An issue in your city has been approved",
-        )
-        _deactivate_tokens(invalid)
+    content = status_content.get(issue.status)
+    if not content:
+        return
 
     # --- Owner notification ---
     owner_tokens = list(
@@ -126,12 +132,34 @@ def notify_issue_approved(issue):
     if owner_tokens:
         invalid = send_to_tokens(
             owner_tokens,
-            title="Your Issue Updated",
-            body="Your issue has been approved",
+            title="تحديث لبلاغك",
+            body=content['owner_body'],
+            data=data,
         )
         _deactivate_tokens(invalid)
 
+    # --- City broadcast (exclude owner) ---
+    if content['city_body']:
+        city_tokens = list(
+            DeviceToken.objects.filter(
+                user__city__iexact=issue.city,
+                is_active=True,
+            )
+            .exclude(user=owner)
+            .values_list('fcm_token', flat=True)
+            .distinct()
+        )
+
+        if city_tokens:
+            invalid = send_to_tokens(
+                city_tokens,
+                title="تحديث في مدينتك",
+                body=content['city_body'],
+                data=data,
+            )
+            _deactivate_tokens(invalid)
+
     logger.info(
-        "Issue #%d approved — pushed to %d city tokens + %d owner tokens",
-        issue.pk, len(city_tokens), len(owner_tokens),
+        "Issue #%d updated to %s — pushed to owner (tokens: %d) and city status: %s",
+        issue.pk, issue.status, len(owner_tokens), "sent" if content['city_body'] else "skipped"
     )

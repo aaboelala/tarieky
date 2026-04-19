@@ -15,6 +15,9 @@ class IssueListSerializer(serializers.ModelSerializer):
     reporter = ReporterSerializer(read_only=True)
     photo_url = serializers.SerializerMethodField()
 
+    status = serializers.CharField(source='get_status_display', read_only=True)
+    category = serializers.CharField(source='get_category_display', read_only=True)
+
     class Meta:
         model = Issue
         fields = [
@@ -34,6 +37,9 @@ class IssueDetailSerializer(serializers.ModelSerializer):
     """Full detail including reporter info."""
     reporter = ReporterSerializer(read_only=True)
     photo_url = serializers.SerializerMethodField()
+
+    status = serializers.CharField(source='get_status_display', read_only=True)
+    category = serializers.CharField(source='get_category_display', read_only=True)
 
     class Meta:
         model = Issue
@@ -93,6 +99,8 @@ class IssueStatusUpdateSerializer(serializers.ModelSerializer):
 from .models import Notification
 
 class NotificationSerializer(serializers.ModelSerializer):
+    notification_type = serializers.CharField(source='get_notification_type_display', read_only=True)
+
     class Meta:
         model = Notification
         fields = ['id', 'message', 'is_read', 'notification_type', 'created_at', 'issue']
