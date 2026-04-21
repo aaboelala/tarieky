@@ -100,10 +100,16 @@ from .models import Notification
 
 class NotificationSerializer(serializers.ModelSerializer):
     notification_type = serializers.CharField(source='get_notification_type_display', read_only=True)
+    issue_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Notification
-        fields = ['id', 'message', 'is_read', 'notification_type', 'created_at', 'issue']
+        fields = ['id', 'message', 'is_read', 'notification_type', 'created_at', 'issue', 'issue_status']
+
+    def get_issue_status(self, obj):
+        if obj.issue:
+            return obj.issue.get_status_display()
+        return None
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):

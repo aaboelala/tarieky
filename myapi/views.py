@@ -176,7 +176,7 @@ class IssueStatusUpdateView(generics.UpdateAPIView):
         }
         status_ar = status_ar_map.get(instance.status, instance.status)
 
-        if instance.status in ['In Progress', 'Resolved']:
+        if instance.status in ['In Progress', 'Resolved','Rejected']:
             # Notify reporter
             Notification.objects.create(
                 user=instance.reporter,
@@ -238,7 +238,7 @@ class NotificationListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return self.request.user.notifications.all()
+        return self.request.user.notifications.select_related('issue').all()
 
 class NotificationReadView(APIView):
     """PATCH /api/notifications/<id>/read/"""
@@ -248,7 +248,8 @@ class NotificationReadView(APIView):
         notification = get_object_or_404(Notification, pk=pk, user=request.user)
         notification.is_read = True
         notification.save()
-        return Response({'status': 'read'})
+        serializer = NotificationSerializer(notification)
+        return Response(serializer.data)
 
 
 class UserIssueStatsView(APIView):
