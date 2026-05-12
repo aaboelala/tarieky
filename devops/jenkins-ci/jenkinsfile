@@ -85,10 +85,8 @@ spec:
       args: ["--addr", "unix:///run/buildkit/buildkitd.sock"]
       securityContext:
         runAsUser: 1000
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
-        capabilities:
-          drop: ["ALL"]
+        seccompProfile:
+          type: Unconfined
       volumeMounts:
         - name: buildkit-sock
           mountPath: /run/buildkit
