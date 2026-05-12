@@ -18,6 +18,13 @@ spec:
   volumes:
     - name: workspace
       emptyDir: {}
+    - name: tmp
+      emptyDir: {}
+    - name: buildkit-state
+      emptyDir: {}
+    - name: rootless-run
+      emptyDir:
+        medium: Memory
     - name: buildkit-sock
       emptyDir:
         medium: Memory
@@ -32,6 +39,7 @@ spec:
     - name: jnlp
       image: jenkins/inbound-agent:latest
       securityContext:
+        runAsUser: 1000
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
         capabilities:
@@ -39,6 +47,38 @@ spec:
       volumeMounts:
         - name: workspace
           mountPath: /home/jenkins/agent
+        - name: tmp
+          mountPath: /tmp
+
+    - name: python
+      image: python:3.11-slim
+      command: ["sleep", "99d"]
+      securityContext:
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: workspace
+          mountPath: /home/jenkins/agent
+        - name: tmp
+          mountPath: /tmp
+          
+    - name: sonar-scanner
+      image: sonarsource/sonar-scanner-cli:latest
+      command: ["sleep", "99d"]
+      securityContext:
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: workspace
+          mountPath: /home/jenkins/agent
+        - name: tmp
+          mountPath: /tmp
 
     - name: buildkitd
       image: moby/buildkit:rootless
@@ -52,8 +92,16 @@ spec:
       volumeMounts:
         - name: buildkit-sock
           mountPath: /run/buildkit
+        - name: buildkit-state
+          mountPath: /home/user/.local/share/buildkit
+        - name: tmp
+          mountPath: /home/user/.local/tmp
+        - name: rootless-run
+          mountPath: /run/user/1000
         - name: workspace
           mountPath: /workspace
+        - name: tmp
+          mountPath: /tmp
 
     - name: buildctl
       image: moby/buildkit:rootless
@@ -71,12 +119,14 @@ spec:
           mountPath: /home/user/.docker
         - name: workspace
           mountPath: /workspace
+        - name: tmp
+          mountPath: /tmp
 
     - name: trivy
       image: aquasec/trivy:latest
       command: ["sleep", "99d"]
       securityContext:
-        runAsNonRoot: true
+        runAsUser: 1000
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
         capabilities:
@@ -84,6 +134,10 @@ spec:
       volumeMounts:
         - name: trivy-cache
           mountPath: /home/scanner/.cache/trivy
+        - name: workspace
+          mountPath: /workspace
+        - name: tmp
+          mountPath: /tmp
 '''
         }
     }
