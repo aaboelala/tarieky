@@ -185,10 +185,10 @@ spec:
                             steps {
                                 container('python') {
                                     sh 'pip install --cache-dir /tmp/pip-cache -r requirements.txt coverage pillow'
-                                    sh 'coverage run --source=authentication,myapi manage.py test --verbosity=2'
-                                    sh 'coverage xml -o coverage.xml'
-                                    sh 'coverage html -d htmlcov'
-                                    sh 'coverage report --fail-under=70'
+                                    sh 'python -m coverage run --source=authentication,myapi manage.py test --verbosity=2'
+                                    sh 'python -m coverage xml -o coverage.xml'
+                                    sh 'python -m coverage html -d htmlcov'
+                                    sh 'python -m coverage report --fail-under=70'
                                 }
                             }
                             post {
