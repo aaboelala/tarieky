@@ -56,6 +56,7 @@ spec:
     - name: python
       image: aaboelala4/tariky:latest
       command: ["sleep", "99d"]
+      workingDir: /home/jenkins/agent
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -74,6 +75,7 @@ spec:
     - name: sonar-scanner
       image: sonarsource/sonar-scanner-cli:latest
       command: ["sleep", "99d"]
+      workingDir: /home/jenkins/agent
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -85,6 +87,10 @@ spec:
           value: /tmp
         - name: SONAR_USER_HOME
           value: /tmp/.sonar
+        - name: SONAR_SCANNER_OPTS
+          value: "-Dsonar.userHome=/tmp/.sonar"
+        - name: XDG_CACHE_HOME
+          value: /tmp/.cache
       volumeMounts:
         - name: workspace
           mountPath: /home/jenkins/agent
@@ -206,11 +212,7 @@ spec:
                             steps {
                                 container('sonar-scanner') {
                                     withSonarQubeEnv(env.SONARQUBE_SERVER_NAME) {
-                                        sh 'sonar-scanner \
-                                            -Dsonar.projectKey=tariky \
-                                            -Dsonar.sources=. \
-                                            -Dsonar.userHome=/tmp/.sonar \
-                                            -Dsonar.python.coverage.reportPaths=coverage.xml'
+                                        sh 'sonar-scanner -Dsonar.projectKey=tariky -Dsonar.sources=. -Dsonar.userHome=/tmp/.sonar -Dsonar.python.coverage.reportPaths=coverage.xml'
                                     }
                                 }
                             }
