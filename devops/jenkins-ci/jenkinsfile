@@ -44,6 +44,9 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: ["ALL"]
+      env:
+        - name: HOME
+          value: /tmp
       volumeMounts:
         - name: workspace
           mountPath: /home/jenkins/agent
@@ -59,6 +62,9 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: ["ALL"]
+      env:
+        - name: HOME
+          value: /tmp
       volumeMounts:
         - name: workspace
           mountPath: /home/jenkins/agent
@@ -74,6 +80,9 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: ["ALL"]
+      env:
+        - name: HOME
+          value: /tmp
       volumeMounts:
         - name: workspace
           mountPath: /home/jenkins/agent
@@ -85,8 +94,6 @@ spec:
       args: ["--addr", "unix:///run/buildkit/buildkitd.sock"]
       securityContext:
         runAsUser: 1000
-        seccompProfile:
-          type: Unconfined
       volumeMounts:
         - name: buildkit-sock
           mountPath: /run/buildkit
@@ -110,6 +117,9 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: ["ALL"]
+      env:
+        - name: HOME
+          value: /tmp
       volumeMounts:
         - name: buildkit-sock
           mountPath: /run/buildkit
@@ -129,6 +139,9 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: ["ALL"]
+      env:
+        - name: HOME
+          value: /tmp
       volumeMounts:
         - name: trivy-cache
           mountPath: /home/scanner/.cache/trivy
