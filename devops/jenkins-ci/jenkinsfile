@@ -1,0 +1,216 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: jenkins-agent
+spec:
+  serviceAccountName: jenkins-ci-agent
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  volumes:
+    - name: workspace
+      emptyDir: {}
+    - name: buildkit-sock
+      emptyDir:
+        medium: Memory
+        sizeLimit: 64Mi
+    - name: docker-config
+      emptyDir:
+        medium: Memory
+    - name: trivy-cache
+      persistentVolumeClaim:
+        claimName: trivy-cache-pvc
+  containers:
+    - name: jnlp
+      image: jenkins/inbound-agent:latest
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: workspace
+          mountPath: /home/jenkins/agent
+
+    - name: buildkitd
+      image: moby/buildkit:rootless
+      args: ["--addr", "unix:///run/buildkit/buildkitd.sock"]
+      securityContext:
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: buildkit-sock
+          mountPath: /run/buildkit
+        - name: workspace
+          mountPath: /workspace
+
+    - name: buildctl
+      image: moby/buildkit:rootless
+      command: ["sleep", "99d"]
+      securityContext:
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: buildkit-sock
+          mountPath: /run/buildkit
+        - name: docker-config
+          mountPath: /home/user/.docker
+        - name: workspace
+          mountPath: /workspace
+
+    - name: trivy
+      image: aquasec/trivy:latest
+      command: ["sleep", "99d"]
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: trivy-cache
+          mountPath: /home/scanner/.cache/trivy
+'''
+        }
+    }
+    
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+        timeout(time: 30, unit: 'MINUTES')
+        timestamps()
+    }
+    
+    environment {
+        DOCKER_IMAGE = 'aaboelala4/tarieky-api'
+        SONARQUBE_SERVER_NAME = 'SonarQube'
+        BUILDKIT_HOST = 'unix:///run/buildkit/buildkitd.sock'
+        DOCKER_CONFIG = '/home/user/.docker'
+        TRIVY_CACHE_DIR = '/home/scanner/.cache/trivy'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Quality & Security Checks') {
+            parallel {
+                stage('Testing & SAST') {
+                    stages {
+                        stage('Install Dependencies & Test') {
+                            steps {
+                                container('python') {
+                                    sh 'pip install -r requirements.txt coverage pillow'
+                                    sh 'coverage run --source=authentication,myapi manage.py test --verbosity=2'
+                                    sh 'coverage xml -o coverage.xml'
+                                    sh 'coverage html -d htmlcov'
+                                    sh 'coverage report --fail-under=70'
+                                }
+                            }
+                            post {
+                                always {
+                                    container('python') {
+                                        archiveArtifacts artifacts: 'coverage.xml,htmlcov/**', allowEmptyArchive: true
+                                    }
+                                }
+                            }
+                        }
+                        
+                        stage('SAST - SonarQube') {
+                            steps {
+                                container('sonar-scanner') {
+                                    withSonarQubeEnv(env.SONARQUBE_SERVER_NAME) {
+                                        sh 'sonar-scanner -Dsonar.python.coverage.reportPaths=coverage.xml'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                
+                
+                stage('SCA - Trivy File System Scan') {
+                    steps {
+                        container('trivy') {
+                            sh 'trivy fs --format table -o trivy-fs-report.txt .'
+                            sh 'cat trivy-fs-report.txt'
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Build Image') {
+            steps {
+                container('buildctl') {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'REG_USER',
+                        passwordVariable: 'REG_PASS'
+                    )]) {
+                        sh '''
+                            set -eu
+                            mkdir -p "$DOCKER_CONFIG"
+                            cat > "$DOCKER_CONFIG/config.json" <<EOF
+                            {"auths":{"https://index.docker.io/v1/":{"auth":"$(printf "%s:%s" "$REG_USER" "$REG_PASS" | base64 -w0)"}}}
+                            EOF
+
+                            buildctl --addr "$BUILDKIT_HOST" build \
+                                --frontend dockerfile.v0 \
+                                --local context=. \
+                                --local dockerfile=. \
+                                --output type=image,name=docker.io/acme/app:${BUILD_NUMBER},push=true \
+                                --import-cache type=registry,ref=docker.io/acme/app:buildcache \
+                                --export-cache type=registry,ref=docker.io/acme/app:buildcache,mode=max
+
+                            rm -f "$DOCKER_CONFIG/config.json"
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Trivy Scan') {
+      steps {
+        container('trivy') {
+          sh '''
+            set -eu
+            trivy image --cache-dir "$TRIVY_CACHE_DIR" --severity HIGH,CRITICAL --exit-code 1 docker.io/acme/app:${BUILD_NUMBER}
+          '''
+        }
+      }
+        
+        
+    }
+    
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo "✅ Pipeline completed successfully!"
+        }
+        failure {
+            echo "❌ Pipeline failed! Please check the logs."
+        }
+    }
+}
+}
+}  
+

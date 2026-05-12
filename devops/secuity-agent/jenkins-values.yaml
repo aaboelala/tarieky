@@ -1,0 +1,75 @@
+controller:
+
+  serviceAccount:
+    create: false
+    name: jenkins-ci
+
+  serviceType: ClusterIP
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 1000
+
+    capabilities:
+      drop:
+        - ALL
+
+    seccompProfile:
+      type: RuntimeDefault
+
+  initContainerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 1000
+
+    capabilities:
+      drop:
+        - ALL
+
+    seccompProfile:
+      type: RuntimeDefault
+
+  sidecars:
+    configAutoReload:
+      enabled: true
+
+      containerSecurityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        runAsUser: 1000
+
+        capabilities:
+          drop:
+            - ALL
+
+        seccompProfile:
+          type: RuntimeDefault
+
+agent:
+  enabled: true
+
+  podSecurityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+
+    capabilities:
+      drop:
+        - ALL
+
+    seccompProfile:
+      type: RuntimeDefault

@@ -13,23 +13,10 @@ logger = logging.getLogger(__name__)
 # FCM multicast limit per batch
 _BATCH_SIZE = 500
 
-
 def send_to_tokens(tokens, title, body, data=None):
     """
     Send a push notification to a list of FCM tokens.
-
-    Chunks tokens into batches of 500 (FCM's limit for multicast).
-    Returns a list of tokens that failed with an unregistered / invalid error
-    so callers can deactivate them.
-
-    Args:
-        tokens: list[str] — FCM registration tokens.
-        title: str — notification title.
-        body: str — notification body text.
-        data: dict[str, str] — optional key-vairue data payload.
-
-    Returns:
-        list[str] — tokens that should be deactivated (invalid/unregistered).
+    Returns tokens that should be deactivated (invalid/unregistered).
     """
     if not tokens:
         return []
@@ -38,6 +25,7 @@ def send_to_tokens(tokens, title, body, data=None):
 
     for i in range(0, len(tokens), _BATCH_SIZE):
         batch = tokens[i:i + _BATCH_SIZE]
+
         message = messaging.MulticastMessage(
             notification=messaging.Notification(title=title, body=body),
             tokens=batch,
@@ -52,18 +40,17 @@ def send_to_tokens(tokens, title, body, data=None):
 
         if response.failure_count:
             for idx, send_response in enumerate(response.responses):
-                if send_response.exception is not None:
-                    exc = send_response.exception
-                    # Mark unregistered / invalid tokens for cleanup
-                    if isinstance(exc, (
-                        messaging.UnregisteredError,
-                        messaging.InvalidArgumentError,
-                    )):
+                exc = send_response.exception
+
+                if exc is not None:
+                    # ✔️ only real invalid token case
+                    if isinstance(exc, messaging.UnregisteredError):
                         invalid_tokens.append(batch[idx])
                     else:
                         logger.warning(
                             "FCM send error for token %s: %s",
-                            batch[idx][:20], exc,
+                            batch[idx][:20],
+                            exc,
                         )
 
         logger.info(
@@ -72,7 +59,6 @@ def send_to_tokens(tokens, title, body, data=None):
         )
 
     return invalid_tokens
-
 
 def _deactivate_tokens(invalid_tokens):
     """Mark invalid tokens as inactive in the database."""

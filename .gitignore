@@ -16,3 +16,5 @@ node_modules/
 dist/
 .DS_Store
 db.sqlite3
+coverage.xml
+.coverage
