@@ -18,6 +18,8 @@ spec:
   volumes:
     - name: workspace
       emptyDir: {}
+    - name: tmp
+      emptyDir: {}
     - name: buildkit-sock
       emptyDir:
         medium: Memory
@@ -31,6 +33,13 @@ spec:
   containers:
     - name: jnlp
       image: jenkins/inbound-agent:latest
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
@@ -39,10 +48,63 @@ spec:
       volumeMounts:
         - name: workspace
           mountPath: /home/jenkins/agent
+        - name: tmp
+          mountPath: /tmp
+
+    - name: python
+      image: python:3.11-slim
+      command: ["sleep", "99d"]
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "250m"
+        limits:
+          memory: "512Mi"
+          cpu: "1000m"
+      securityContext:
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: workspace
+          mountPath: /home/jenkins/agent
+        - name: tmp
+          mountPath: /tmp
+
+    - name: sonar-scanner
+      image: sonarsource/sonar-scanner-cli:latest
+      command: ["sleep", "99d"]
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "250m"
+        limits:
+          memory: "1Gi"
+          cpu: "1000m"
+      securityContext:
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: workspace
+          mountPath: /home/jenkins/agent
+        - name: tmp
+          mountPath: /tmp
 
     - name: buildkitd
       image: moby/buildkit:rootless
       args: ["--addr", "unix:///run/buildkit/buildkitd.sock"]
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "500m"
+        limits:
+          memory: "1Gi"
+          cpu: "1000m"
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -53,11 +115,20 @@ spec:
         - name: buildkit-sock
           mountPath: /run/buildkit
         - name: workspace
-          mountPath: /workspace
+          mountPath: /home/jenkins/agent
+        - name: tmp
+          mountPath: /tmp
 
     - name: buildctl
       image: moby/buildkit:rootless
       command: ["sleep", "99d"]
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "256Mi"
+          cpu: "250m"
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -70,11 +141,20 @@ spec:
         - name: docker-config
           mountPath: /home/user/.docker
         - name: workspace
-          mountPath: /workspace
+          mountPath: /home/jenkins/agent
+        - name: tmp
+          mountPath: /tmp
 
     - name: trivy
       image: aquasec/trivy:latest
       command: ["sleep", "99d"]
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "200m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
       securityContext:
         runAsNonRoot: true
         allowPrivilegeEscalation: false
@@ -84,6 +164,10 @@ spec:
       volumeMounts:
         - name: trivy-cache
           mountPath: /home/scanner/.cache/trivy
+        - name: workspace
+          mountPath: /home/jenkins/agent
+        - name: tmp
+          mountPath: /tmp
 '''
         }
     }
@@ -92,7 +176,7 @@ spec:
         buildDiscarder(logRotator(numToKeepStr: '10'))
         disableConcurrentBuilds()
         timeout(time: 30, unit: 'MINUTES')
-        timestamps()
+        // Removed timestamps() because the plugin is missing from the Jenkins server
     }
     
     environment {
@@ -117,7 +201,7 @@ spec:
                         stage('Install Dependencies & Test') {
                             steps {
                                 container('python') {
-                                    sh 'pip install -r requirements.txt coverage pillow'
+                                    sh 'pip install --cache-dir /tmp/pip-cache -r requirements.txt coverage pillow'
                                     sh 'coverage run --source=authentication,myapi manage.py test --verbosity=2'
                                     sh 'coverage xml -o coverage.xml'
                                     sh 'coverage html -d htmlcov'
@@ -143,7 +227,7 @@ spec:
                             }
                         }
                     }
-                
+                }
                 
                 stage('SCA - Trivy File System Scan') {
                     steps {
@@ -171,32 +255,31 @@ spec:
                             {"auths":{"https://index.docker.io/v1/":{"auth":"$(printf "%s:%s" "$REG_USER" "$REG_PASS" | base64 -w0)"}}}
                             EOF
 
-                            buildctl --addr "$BUILDKIT_HOST" build \
-                                --frontend dockerfile.v0 \
-                                --local context=. \
-                                --local dockerfile=. \
-                                --output type=image,name=docker.io/acme/app:${BUILD_NUMBER},push=true \
-                                --import-cache type=registry,ref=docker.io/acme/app:buildcache \
-                                --export-cache type=registry,ref=docker.io/acme/app:buildcache,mode=max
+                            buildctl --addr "$BUILDKIT_HOST" build \\
+                                --frontend dockerfile.v0 \\
+                                --local context=. \\
+                                --local dockerfile=. \\
+                                --output type=image,name=docker.io/${DOCKER_IMAGE}:${BUILD_NUMBER},push=true \\
+                                --import-cache type=registry,ref=docker.io/${DOCKER_IMAGE}:buildcache \\
+                                --export-cache type=registry,ref=docker.io/${DOCKER_IMAGE}:buildcache,mode=max
 
                             rm -f "$DOCKER_CONFIG/config.json"
-            '''
-          }
+                        '''
+                    }
+                }
+            }
         }
-      }
-    }
 
-    stage('Trivy Scan') {
-      steps {
-        container('trivy') {
-          sh '''
-            set -eu
-            trivy image --cache-dir "$TRIVY_CACHE_DIR" --severity HIGH,CRITICAL --exit-code 1 docker.io/acme/app:${BUILD_NUMBER}
-          '''
+        stage('Trivy Scan') {
+            steps {
+                container('trivy') {
+                    sh '''
+                        set -eu
+                        trivy image --cache-dir "$TRIVY_CACHE_DIR" --severity HIGH,CRITICAL --exit-code 1 docker.io/${DOCKER_IMAGE}:${BUILD_NUMBER}
+                    '''
+                }
+            }
         }
-      }
-        
-        
     }
     
     post {
@@ -211,6 +294,4 @@ spec:
         }
     }
 }
-}
-}  
 
