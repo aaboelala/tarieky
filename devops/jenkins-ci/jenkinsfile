@@ -32,14 +32,7 @@ spec:
         claimName: trivy-cache-pvc
   containers:
     - name: jnlp
-      image: jenkins/inbound-agent:latest
-      resources:
-        requests:
-          memory: "256Mi"
-          cpu: "100m"
-        limits:
-          memory: "512Mi"
-          cpu: "500m"
+      image: jenkins/inbound-agent:latest 
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
@@ -54,13 +47,6 @@ spec:
     - name: python
       image: python:3.11-slim
       command: ["sleep", "99d"]
-      resources:
-        requests:
-          memory: "256Mi"
-          cpu: "250m"
-        limits:
-          memory: "512Mi"
-          cpu: "1000m"
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -76,13 +62,6 @@ spec:
     - name: sonar-scanner
       image: sonarsource/sonar-scanner-cli:latest
       command: ["sleep", "99d"]
-      resources:
-        requests:
-          memory: "512Mi"
-          cpu: "250m"
-        limits:
-          memory: "1Gi"
-          cpu: "1000m"
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -98,13 +77,7 @@ spec:
     - name: buildkitd
       image: moby/buildkit:rootless
       args: ["--addr", "unix:///run/buildkit/buildkitd.sock"]
-      resources:
-        requests:
-          memory: "512Mi"
-          cpu: "500m"
-        limits:
-          memory: "1Gi"
-          cpu: "1000m"
+
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -122,13 +95,6 @@ spec:
     - name: buildctl
       image: moby/buildkit:rootless
       command: ["sleep", "99d"]
-      resources:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "256Mi"
-          cpu: "250m"
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -138,8 +104,6 @@ spec:
       volumeMounts:
         - name: buildkit-sock
           mountPath: /run/buildkit
-        - name: docker-config
-          mountPath: /home/user/.docker
         - name: workspace
           mountPath: /home/jenkins/agent
         - name: tmp
@@ -148,13 +112,6 @@ spec:
     - name: trivy
       image: aquasec/trivy:latest
       command: ["sleep", "99d"]
-      resources:
-        requests:
-          memory: "256Mi"
-          cpu: "200m"
-        limits:
-          memory: "512Mi"
-          cpu: "500m"
       securityContext:
         runAsNonRoot: true
         allowPrivilegeEscalation: false
