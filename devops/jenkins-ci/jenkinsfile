@@ -54,7 +54,7 @@ spec:
           mountPath: /tmp
 
     - name: python
-      image: python:3.11-slim
+      image: tarieky-api:latest
       command: ["sleep", "99d"]
       securityContext:
         runAsUser: 1000
@@ -181,10 +181,10 @@ spec:
             parallel {
                 stage('Testing & SAST') {
                     stages {
-                        stage('Install Dependencies & Test') {
+                        stage('Test') {
                             steps {
                                 container('python') {
-                                    sh 'pip install --cache-dir /tmp/pip-cache -r requirements.txt coverage pillow'
+                                    // Dependencies are now pre-installed in the Docker image
                                     sh 'python -m coverage run --source=authentication,myapi manage.py test --verbosity=2'
                                     sh 'python -m coverage xml -o coverage.xml'
                                     sh 'python -m coverage html -d htmlcov'
@@ -204,7 +204,10 @@ spec:
                             steps {
                                 container('sonar-scanner') {
                                     withSonarQubeEnv(env.SONARQUBE_SERVER_NAME) {
-                                        sh 'sonar-scanner -Dsonar.python.coverage.reportPaths=coverage.xml'
+                                        sh 'sonar-scanner \
+                                            -Dsonar.projectKey=tarieky-api \
+                                            -Dsonar.sources=. \
+                                            -Dsonar.python.coverage.reportPaths=coverage.xml'
                                     }
                                 }
                             }
