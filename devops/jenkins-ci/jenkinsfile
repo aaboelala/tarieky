@@ -94,6 +94,8 @@ spec:
       args: ["--addr", "unix:///run/buildkit/buildkitd.sock"]
       securityContext:
         runAsUser: 1000
+        seccompProfile:
+          type: Unconfined
       volumeMounts:
         - name: buildkit-sock
           mountPath: /run/buildkit
