@@ -260,7 +260,7 @@ spec:
                             steps {
                                 container('sonar-scanner') {
                                     withSonarQubeEnv(env.SONARQUBE_SERVER_NAME) {
-                                        sh 'sonar-scanner -Dsonar.projectKey=tariky -Dsonar.sources=. -Dsonar.userHome=/tmp/.sonar -Dsonar.python.coverage.reportPaths=coverage.xml'
+                                        sh 'sonar-scanner -Dsonar.projectKey=tariky -Dsonar.sources=. -Dsonar.exclusions=**/tests.py,**/test_*.py -Dsonar.tests=. -Dsonar.test.inclusions=**/tests.py,**/test_*.py -Dsonar.userHome=/tmp/.sonar -Dsonar.python.coverage.reportPaths=coverage.xml'
                                     }
                                 }
                             }
