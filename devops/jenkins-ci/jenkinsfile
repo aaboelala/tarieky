@@ -18,8 +18,6 @@ spec:
   volumes:
     - name: workspace
       emptyDir: {}
-    - name: tmp
-      emptyDir: {}
     - name: buildkit-sock
       emptyDir:
         medium: Memory
@@ -32,7 +30,7 @@ spec:
         claimName: trivy-cache-pvc
   containers:
     - name: jnlp
-      image: jenkins/inbound-agent:latest 
+      image: jenkins/inbound-agent:latest
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
@@ -41,43 +39,10 @@ spec:
       volumeMounts:
         - name: workspace
           mountPath: /home/jenkins/agent
-        - name: tmp
-          mountPath: /tmp
-
-    - name: python
-      image: python:3.11-slim
-      command: ["sleep", "99d"]
-      securityContext:
-        runAsUser: 1000
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
-        capabilities:
-          drop: ["ALL"]
-      volumeMounts:
-        - name: workspace
-          mountPath: /home/jenkins/agent
-        - name: tmp
-          mountPath: /tmp
-
-    - name: sonar-scanner
-      image: sonarsource/sonar-scanner-cli:latest
-      command: ["sleep", "99d"]
-      securityContext:
-        runAsUser: 1000
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
-        capabilities:
-          drop: ["ALL"]
-      volumeMounts:
-        - name: workspace
-          mountPath: /home/jenkins/agent
-        - name: tmp
-          mountPath: /tmp
 
     - name: buildkitd
       image: moby/buildkit:rootless
       args: ["--addr", "unix:///run/buildkit/buildkitd.sock"]
-
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -88,9 +53,7 @@ spec:
         - name: buildkit-sock
           mountPath: /run/buildkit
         - name: workspace
-          mountPath: /home/jenkins/agent
-        - name: tmp
-          mountPath: /tmp
+          mountPath: /workspace
 
     - name: buildctl
       image: moby/buildkit:rootless
@@ -104,10 +67,10 @@ spec:
       volumeMounts:
         - name: buildkit-sock
           mountPath: /run/buildkit
+        - name: docker-config
+          mountPath: /home/user/.docker
         - name: workspace
-          mountPath: /home/jenkins/agent
-        - name: tmp
-          mountPath: /tmp
+          mountPath: /workspace
 
     - name: trivy
       image: aquasec/trivy:latest
@@ -121,10 +84,6 @@ spec:
       volumeMounts:
         - name: trivy-cache
           mountPath: /home/scanner/.cache/trivy
-        - name: workspace
-          mountPath: /home/jenkins/agent
-        - name: tmp
-          mountPath: /tmp
 '''
         }
     }
