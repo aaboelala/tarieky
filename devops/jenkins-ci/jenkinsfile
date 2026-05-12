@@ -54,7 +54,7 @@ spec:
           mountPath: /tmp
 
     - name: python
-      image: tarieky-api:latest
+      image: aaboelala4/tarieky-api:latest
       command: ["sleep", "99d"]
       securityContext:
         runAsUser: 1000
@@ -205,7 +205,7 @@ spec:
                                 container('sonar-scanner') {
                                     withSonarQubeEnv(env.SONARQUBE_SERVER_NAME) {
                                         sh 'sonar-scanner \
-                                            -Dsonar.projectKey=tarieky-api \
+                                            -Dsonar.projectKey=tariky \
                                             -Dsonar.sources=. \
                                             -Dsonar.python.coverage.reportPaths=coverage.xml'
                                     }
