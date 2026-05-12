@@ -83,6 +83,8 @@ spec:
       env:
         - name: HOME
           value: /tmp
+        - name: SONAR_USER_HOME
+          value: /tmp/.sonar
       volumeMounts:
         - name: workspace
           mountPath: /home/jenkins/agent
@@ -207,6 +209,7 @@ spec:
                                         sh 'sonar-scanner \
                                             -Dsonar.projectKey=tariky \
                                             -Dsonar.sources=. \
+                                            -Dsonar.userHome=/tmp/.sonar \
                                             -Dsonar.python.coverage.reportPaths=coverage.xml'
                                     }
                                 }
