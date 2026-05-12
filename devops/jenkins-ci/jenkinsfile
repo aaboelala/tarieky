@@ -54,7 +54,7 @@ spec:
           mountPath: /tmp
 
     - name: python
-      image: aaboelala4/tarieky-api:latest
+      image: aaboelala4/tariky:latest
       command: ["sleep", "99d"]
       securityContext:
         runAsUser: 1000
