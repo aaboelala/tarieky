@@ -38,6 +38,14 @@ spec:
   containers:
     - name: jnlp
       image: jenkins/inbound-agent:latest
+      workingDir: /home/jenkins/agent
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -57,6 +65,13 @@ spec:
       image: aaboelala4/tariky:latest
       command: ["sleep", "99d"]
       workingDir: /home/jenkins/agent
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "500m"
+        limits:
+          memory: "1Gi"
+          cpu: "1000m"
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -76,6 +91,13 @@ spec:
       image: sonarsource/sonar-scanner-cli:latest
       command: ["sleep", "99d"]
       workingDir: /home/jenkins/agent
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "250m"
+        limits:
+          memory: "1Gi"
+          cpu: "1000m"
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -100,6 +122,14 @@ spec:
     - name: buildkitd
       image: moby/buildkit:rootless
       args: ["--addr", "unix:///run/buildkit/buildkitd.sock"]
+      workingDir: /home/jenkins/agent
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "500m"
+        limits:
+          memory: "1Gi"
+          cpu: "1000m"
       securityContext:
         runAsUser: 1000
         seccompProfile:
@@ -114,13 +144,21 @@ spec:
         - name: rootless-run
           mountPath: /run/user/1000
         - name: workspace
-          mountPath: /workspace
+          mountPath: /home/jenkins/agent
         - name: tmp
           mountPath: /tmp
 
     - name: buildctl
       image: moby/buildkit:rootless
       command: ["sleep", "99d"]
+      workingDir: /home/jenkins/agent
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -136,13 +174,21 @@ spec:
         - name: docker-config
           mountPath: /home/user/.docker
         - name: workspace
-          mountPath: /workspace
+          mountPath: /home/jenkins/agent
         - name: tmp
           mountPath: /tmp
 
     - name: trivy
       image: aquasec/trivy:latest
       command: ["sleep", "99d"]
+      workingDir: /home/jenkins/agent
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "250m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
       securityContext:
         runAsUser: 1000
         allowPrivilegeEscalation: false
@@ -156,7 +202,7 @@ spec:
         - name: trivy-cache
           mountPath: /home/scanner/.cache/trivy
         - name: workspace
-          mountPath: /workspace
+          mountPath: /home/jenkins/agent
         - name: tmp
           mountPath: /tmp
 '''
