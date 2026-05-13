@@ -134,9 +134,14 @@ spec:
         runAsUser: 1000
         seccompProfile:
           type: Unconfined
+      env:
+        - name: DOCKER_CONFIG
+          value: /home/user/.docker
       volumeMounts:
         - name: buildkit-sock
           mountPath: /run/buildkit
+        - name: docker-config
+          mountPath: /home/user/.docker
         - name: buildkit-state
           mountPath: /home/user/.local/share/buildkit
         - name: tmp
@@ -295,6 +300,7 @@ spec:
                             EOF
 
                             buildctl --addr "$BUILDKIT_HOST" build \\
+                                --progress=plain \\
                                 --frontend dockerfile.v0 \\
                                 --local context=. \\
                                 --local dockerfile=. \\
