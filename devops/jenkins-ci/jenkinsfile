@@ -5,6 +5,8 @@ pipeline {
 apiVersion: v1
 kind: Pod
 metadata:
+  annotations:
+    container.apparmor.security.beta.kubernetes.io/buildkitd: unconfined
   labels:
     app: jenkins-agent
 spec:
@@ -120,8 +122,13 @@ spec:
           mountPath: /tmp
 
     - name: buildkitd
-      image: moby/buildkit:rootless
-      args: ["--addr", "unix:///run/buildkit/buildkitd.sock"]
+      image: moby/buildkit:v0.29.0-rootless
+      args:
+        - --addr
+        - unix:///run/buildkit/buildkitd.sock
+        - --containerd-worker=false
+        - --oci-worker=true
+        - --oci-worker-no-process-sandbox
       workingDir: /home/jenkins/agent
       resources:
         requests:
@@ -132,6 +139,7 @@ spec:
           cpu: "1000m"
       securityContext:
         runAsUser: 1000
+        procMount: Unmasked
         seccompProfile:
           type: Unconfined
       env:
@@ -154,7 +162,7 @@ spec:
           mountPath: /tmp
 
     - name: buildctl
-      image: moby/buildkit:rootless
+      image: moby/buildkit:v0.29.0
       command: ["sleep", "99d"]
       workingDir: /home/jenkins/agent
       resources:
@@ -294,10 +302,17 @@ spec:
                     )]) {
                         sh '''
                             set -eu
+                            echo "Preflight: checking buildctl availability"
+                            echo "PATH=$PATH"
+                            command -v buildctl || true
+                            ls -l /usr/bin/buildctl /bin/buildctl /usr/local/bin/buildctl 2>/dev/null || true
+                            if ! command -v buildctl >/dev/null 2>&1; then
+                                echo "ERROR: buildctl binary is missing from the buildctl container image"
+                                exit 127
+                            fi
                             mkdir -p "$DOCKER_CONFIG"
-                            cat > "$DOCKER_CONFIG/config.json" <<EOF
-                            {"auths":{"https://index.docker.io/v1/":{"auth":"$(printf "%s:%s" "$REG_USER" "$REG_PASS" | base64 -w0)"}}}
-                            EOF
+                            AUTH_TOKEN=$(printf "%s:%s" "$REG_USER" "$REG_PASS" | base64 | tr -d '\\n')
+                            echo "{\\"auths\\":{\\"https://index.docker.io/v1/\\":{\\"auth\\":\\"$AUTH_TOKEN\\"}}}" > "$DOCKER_CONFIG/config.json"
 
                             buildctl --addr "$BUILDKIT_HOST" build \\
                                 --progress=plain \\
@@ -307,6 +322,7 @@ spec:
                                 --output type=image,name=docker.io/${DOCKER_IMAGE}:${BUILD_NUMBER},push=true \\
                                 --import-cache type=registry,ref=docker.io/${DOCKER_IMAGE}:buildcache \\
                                 --export-cache type=registry,ref=docker.io/${DOCKER_IMAGE}:buildcache,mode=max
+
 
                             rm -f "$DOCKER_CONFIG/config.json"
                         '''
@@ -326,9 +342,8 @@ spec:
                         sh '''
                             set -eu
                             mkdir -p "$DOCKER_CONFIG"
-                            cat > "$DOCKER_CONFIG/config.json" <<EOF
-                            {"auths":{"https://index.docker.io/v1/":{"auth":"$(printf "%s:%s" "$REG_USER" "$REG_PASS" | base64 -w0)"}}}
-                            EOF
+                            AUTH_TOKEN=$(printf "%s:%s" "$REG_USER" "$REG_PASS" | base64 | tr -d '\\n')
+                            echo "{\\"auths\\":{\\"https://index.docker.io/v1/\\":{\\"auth\\":\\"$AUTH_TOKEN\\"}}}" > "$DOCKER_CONFIG/config.json"
 
                             trivy image --cache-dir "$TRIVY_CACHE_DIR" --severity HIGH,CRITICAL --exit-code 1 docker.io/${DOCKER_IMAGE}:${BUILD_NUMBER}
 
@@ -350,4 +365,5 @@ spec:
         }
     }
 }
+
 

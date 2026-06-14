@@ -85,21 +85,10 @@ class IssueListCreateView(generics.ListCreateAPIView):
         return qs
 
     def perform_create(self, serializer):
-        instance = serializer.save(reporter=self.request.user)
-        # Notify others in the city about the new issue
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        users_in_city = User.objects.filter(city__iexact=instance.city).exclude(id=self.request.user.id)
-        
-        notifications = [
-            Notification(
-                user=user,
-                issue=instance,
-                notification_type='city_alert',
-                message=f"بلاغ مروري جديد في {instance.city}: {instance.description[:50]}..."
-            ) for user in users_in_city
-        ]
-        Notification.objects.bulk_create(notifications)
+        serializer.save(reporter=self.request.user)
+        # No notifications on creation — issues start as 'Pending'.
+        # Notifications are sent later when status changes to
+        # 'In Progress' or 'Resolved' (handled by IssueStatusUpdateView).
 
 
 class IssueDetailView(generics.RetrieveAPIView):
@@ -176,15 +165,17 @@ class IssueStatusUpdateView(generics.UpdateAPIView):
         }
         status_ar = status_ar_map.get(instance.status, instance.status)
 
-        if instance.status in ['In Progress', 'Resolved','Rejected']:
-            # Notify reporter
+        if instance.status in ['In Progress', 'Resolved', 'Rejected']:
+            # Always notify the issue reporter about status changes
             Notification.objects.create(
                 user=instance.reporter,
                 issue=instance,
                 notification_type='issue_update',
                 message=f"تحديث لحالة بلاغك رقم {instance.id}: البلاغ الآن {status_ar}."
             )
-            # Notify others in the city
+
+        # City broadcast ONLY for 'In Progress' and 'Resolved' — NOT for 'Rejected'
+        if instance.status in ['In Progress', 'Resolved']:
             from django.contrib.auth import get_user_model
             User = get_user_model()
             users_in_city = User.objects.filter(city__iexact=instance.city).exclude(id=instance.reporter.id)
@@ -238,7 +229,11 @@ class NotificationListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return self.request.user.notifications.select_related('issue').all()
+        return self.request.user.notifications.select_related('issue').filter(
+            # Owner's own issue updates (all statuses) OR city alerts only for In Progress / Resolved
+            Q(notification_type='issue_update') |
+            Q(notification_type='city_alert', issue__status__in=['In Progress', 'Resolved'])
+        )
 
 class NotificationReadView(APIView):
     """PATCH /api/notifications/<id>/read/"""
