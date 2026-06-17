@@ -32,7 +32,7 @@ SECRET_KEY = 'django-insecure-7e(_**!=_oomz45(@)^y%w92-uf5%)puqvrt0*c13l@1a^lpq9
 DEBUG = True
 # settings.py
 CSRF_TRUSTED_ORIGINS = [
-    "https://tarieky-production.up.railway.app",  # ضع هنا URL مشروعك على Railway
+    "https://tarieky-production-d0ae.up.railway.app",  # ضع هنا URL مشروعك على Railway
 ]
 ALLOWED_HOSTS = ["*"]
 
