@@ -10,6 +10,7 @@ from .views import (
     MyIssuesListView,
     UserIssueStatsView,
     RegisterDeviceTokenView,
+    IssueTasdeeqToggleView,
 )
 
 urlpatterns = [
@@ -19,6 +20,7 @@ urlpatterns = [
     path('issues/nearby/', NearbyIssuesView.as_view(), name='issues-nearby'),
     path('issues/<int:pk>/', IssueDetailView.as_view(), name='issue-detail'),
     path('issues/<int:pk>/status/', IssueStatusUpdateView.as_view(), name='issue-status-update'),
+    path('issues/<int:pk>/tasdeeq/', IssueTasdeeqToggleView.as_view(), name='issue-tasdeeq-toggle'),
     path('profile/', UserProfileView.as_view(), name='user-profile'),
     path('notifications/', NotificationListView.as_view(), name='notification-list'),
     path('notifications/<int:pk>/read/', NotificationReadView.as_view(), name='notification-read'),

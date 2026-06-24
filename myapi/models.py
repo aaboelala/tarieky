@@ -43,6 +43,11 @@ class Issue(models.Model):
         choices=CATEGORY_CHOICES,
         default='other',
     )
+    tasdeeqs = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='tasdeeq_issues',
+        blank=True
+    )
     
 
     class Meta:

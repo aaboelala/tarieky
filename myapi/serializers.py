@@ -17,13 +17,15 @@ class IssueListSerializer(serializers.ModelSerializer):
 
     status = serializers.CharField(source='get_status_display', read_only=True)
     category = serializers.CharField(source='get_category_display', read_only=True)
+    tasdeeq_count = serializers.SerializerMethodField()
+    has_tasdeeq = serializers.SerializerMethodField()
 
     class Meta:
         model = Issue
         fields = [
             'id', 'photo_url', 'description', 'status', 'category',
             'latitude', 'longitude', 'city', 'governorate',
-            'created_at', 'reporter'
+            'created_at', 'reporter', 'tasdeeq_count', 'has_tasdeeq'
         ]
 
     def get_photo_url(self, obj):
@@ -31,6 +33,15 @@ class IssueListSerializer(serializers.ModelSerializer):
         if obj.photo and request:
             return request.build_absolute_uri(obj.photo.url)
         return None
+
+    def get_tasdeeq_count(self, obj):
+        return obj.tasdeeqs.count()
+
+    def get_has_tasdeeq(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.tasdeeqs.filter(id=request.user.id).exists()
+        return False
 
 
 class IssueDetailSerializer(serializers.ModelSerializer):
@@ -40,13 +51,15 @@ class IssueDetailSerializer(serializers.ModelSerializer):
 
     status = serializers.CharField(source='get_status_display', read_only=True)
     category = serializers.CharField(source='get_category_display', read_only=True)
+    tasdeeq_count = serializers.SerializerMethodField()
+    has_tasdeeq = serializers.SerializerMethodField()
 
     class Meta:
         model = Issue
         fields = [
             'id', 'photo_url', 'description', 'status', 'category',
             'latitude', 'longitude', 'city', 'governorate',
-            'created_at', 'updated_at', 'reporter',
+            'created_at', 'updated_at', 'reporter', 'tasdeeq_count', 'has_tasdeeq'
         ]
 
     def get_photo_url(self, obj):
@@ -54,6 +67,15 @@ class IssueDetailSerializer(serializers.ModelSerializer):
         if obj.photo and request:
             return request.build_absolute_uri(obj.photo.url)
         return None
+
+    def get_tasdeeq_count(self, obj):
+        return obj.tasdeeqs.count()
+
+    def get_has_tasdeeq(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.tasdeeqs.filter(id=request.user.id).exists()
+        return False
 
 
 class IssueCreateSerializer(serializers.ModelSerializer):

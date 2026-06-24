@@ -190,6 +190,21 @@ class IssueStatusUpdateView(generics.UpdateAPIView):
             Notification.objects.bulk_create(notifications)
 
 
+class IssueTasdeeqToggleView(APIView):
+    """POST /api/issues/<id>/tasdeeq/  → toggle tasdeeq (like) for an issue."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        issue = get_object_or_404(Issue, pk=pk)
+        if request.user in issue.tasdeeqs.all():
+            issue.tasdeeqs.remove(request.user)
+            action = 'removed'
+        else:
+            issue.tasdeeqs.add(request.user)
+            action = 'added'
+        return Response({'status': action, 'tasdeeq_count': issue.tasdeeqs.count()})
+
+
 class UserProfileView(APIView):
     """GET/PATCH /api/profile/  → current user info for the frontend."""
     permission_classes = [permissions.IsAuthenticated]
