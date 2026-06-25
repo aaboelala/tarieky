@@ -35,9 +35,13 @@ class IssueListSerializer(serializers.ModelSerializer):
         return None
 
     def get_tasdeeq_count(self, obj):
+        if hasattr(obj, 'tasdeeq_count_annotated'):
+            return obj.tasdeeq_count_annotated
         return obj.tasdeeqs.count()
 
     def get_has_tasdeeq(self, obj):
+        if hasattr(obj, 'has_tasdeeq_annotated'):
+            return obj.has_tasdeeq_annotated
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return obj.tasdeeqs.filter(id=request.user.id).exists()
@@ -69,9 +73,13 @@ class IssueDetailSerializer(serializers.ModelSerializer):
         return None
 
     def get_tasdeeq_count(self, obj):
+        if hasattr(obj, 'tasdeeq_count_annotated'):
+            return obj.tasdeeq_count_annotated
         return obj.tasdeeqs.count()
 
     def get_has_tasdeeq(self, obj):
+        if hasattr(obj, 'has_tasdeeq_annotated'):
+            return obj.has_tasdeeq_annotated
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return obj.tasdeeqs.filter(id=request.user.id).exists()

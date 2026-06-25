@@ -1,6 +1,6 @@
 import math
 
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Exists, OuterRef
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -29,6 +29,18 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     a = (math.sin(dphi / 2) ** 2
          + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2)
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def annotate_tasdeeq_fields(qs, user):
+    """Annotate queryset with tasdeeq_count_annotated and has_tasdeeq_annotated to avoid N+1 queries."""
+    qs = qs.annotate(tasdeeq_count_annotated=Count('tasdeeqs', distinct=True))
+    if user and user.is_authenticated:
+        has_tasdeeq_subquery = Issue.tasdeeqs.through.objects.filter(
+            issue_id=OuterRef('pk'),
+            user_id=user.id
+        )
+        qs = qs.annotate(has_tasdeeq_annotated=Exists(has_tasdeeq_subquery))
+    return qs
 
 
 # ---------- permissions ----------
@@ -63,6 +75,7 @@ class IssueListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         qs = Issue.objects.select_related('reporter').all()
+        qs = annotate_tasdeeq_fields(qs, self.request.user)
         city = self.request.query_params.get('city', '').strip()
         governorate = self.request.query_params.get('governorate', '').strip()
         status_filter = self.request.query_params.get('status', '').strip()
@@ -93,9 +106,12 @@ class IssueListCreateView(generics.ListCreateAPIView):
 
 class IssueDetailView(generics.RetrieveAPIView):
     """GET /api/issues/<id>/  → single issue detail (public)."""
-    queryset = Issue.objects.select_related('reporter').all()
     serializer_class = IssueDetailSerializer
     permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        qs = Issue.objects.select_related('reporter').all()
+        return annotate_tasdeeq_fields(qs, self.request.user)
 
 
 class MyIssuesListView(generics.ListAPIView):
@@ -104,9 +120,9 @@ class MyIssuesListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Issue.objects.filter(
-            reporter=self.request.user
-        ).order_by('-created_at')
+        qs = Issue.objects.filter(reporter=self.request.user).select_related('reporter')
+        qs = annotate_tasdeeq_fields(qs, self.request.user)
+        return qs.order_by('-created_at')
 
 
 class NearbyIssuesView(APIView):
@@ -135,6 +151,7 @@ class NearbyIssuesView(APIView):
             longitude__range=(lon - delta, lon + delta),
             status='In Progress'
         )
+        issues = annotate_tasdeeq_fields(issues, request.user)
 
         nearby = []
         for issue in issues:
