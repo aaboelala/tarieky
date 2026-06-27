@@ -18,3 +18,4 @@ dist/
 db.sqlite3
 coverage.xml
 .coverage
+supervisor_dashboard/
