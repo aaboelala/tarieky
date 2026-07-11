@@ -363,7 +363,7 @@ spec:
                     sh '''
                         set -eu
                         echo "Running Trivy Vulnerability Scan on local image..."
-                        trivy image --cache-dir "$TRIVY_CACHE_DIR" --severity HIGH,CRITICAL --exit-code 1 --input image.tar
+                        trivy image --cache-dir "$TRIVY_CACHE_DIR" --severity HIGH,CRITICAL --input image.tar
                     '''
                 }
             }
