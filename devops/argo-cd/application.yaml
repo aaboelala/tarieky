@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tarieky-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/aaboelala/tarieky.git'
+    targetRevision: HEAD
+    path: devops/k8s
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: tarieky
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

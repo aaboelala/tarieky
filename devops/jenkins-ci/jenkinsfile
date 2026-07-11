@@ -220,6 +220,32 @@ spec:
           mountPath: /home/user/.docker
         - name: tmp
           mountPath: /tmp
+
+    - name: skopeo
+      image: quay.io/skopeo/stable:latest
+      command: ["sleep", "99d"]
+      workingDir: /home/jenkins/agent
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
+      securityContext:
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      env:
+        - name: HOME
+          value: /tmp
+      volumeMounts:
+        - name: workspace
+          mountPath: /home/jenkins/agent
+        - name: tmp
+          mountPath: /tmp
 '''
         }
     }
@@ -233,6 +259,7 @@ spec:
     
     environment {
         DOCKER_IMAGE = 'aaboelala4/tariky'
+        GHCR_IMAGE = 'ghcr.io/aaboelala/tarieky'
         SONARQUBE_SERVER_NAME = 'SonarQube'
         BUILDKIT_HOST = 'unix:///run/buildkit/buildkitd.sock'
         DOCKER_CONFIG = '/home/user/.docker'
@@ -296,9 +323,9 @@ spec:
             steps {
                 container('buildctl') {
                     withCredentials([usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'REG_USER',
-                        passwordVariable: 'REG_PASS'
+                        credentialsId: 'github-creds',
+                        usernameVariable: 'GH_USER',
+                        passwordVariable: 'GH_PAT'
                     )]) {
                         sh '''
                             set -eu
@@ -311,18 +338,17 @@ spec:
                                 exit 127
                             fi
                             mkdir -p "$DOCKER_CONFIG"
-                            AUTH_TOKEN=$(printf "%s:%s" "$REG_USER" "$REG_PASS" | base64 | tr -d '\\n')
-                            echo "{\\"auths\\":{\\"https://index.docker.io/v1/\\":{\\"auth\\":\\"$AUTH_TOKEN\\"}}}" > "$DOCKER_CONFIG/config.json"
+                            AUTH_TOKEN=$(printf "%s:%s" "$GH_USER" "$GH_PAT" | base64 | tr -d '\\n')
+                            echo "{\\"auths\\":{\\"https://ghcr.io\\":{\\"auth\\":\\"$AUTH_TOKEN\\"}}}" > "$DOCKER_CONFIG/config.json"
 
-                            buildctl --addr "$BUILDKIT_HOST" build \\
-                                --progress=plain \\
-                                --frontend dockerfile.v0 \\
-                                --local context=. \\
-                                --local dockerfile=. \\
-                                --output type=image,name=docker.io/${DOCKER_IMAGE}:${BUILD_NUMBER},push=true \\
-                                --import-cache type=registry,ref=docker.io/${DOCKER_IMAGE}:buildcache \\
-                                --export-cache type=registry,ref=docker.io/${DOCKER_IMAGE}:buildcache,mode=max
-
+                            buildctl --addr "$BUILDKIT_HOST" build \
+                                --progress=plain \
+                                --frontend dockerfile.v0 \
+                                --local context=. \
+                                --local dockerfile=. \
+                                --output type=docker,dest=image.tar,name=${GHCR_IMAGE}:${BUILD_NUMBER} \
+                                --import-cache type=registry,ref=${GHCR_IMAGE}:buildcache \
+                                --export-cache type=registry,ref=${GHCR_IMAGE}:buildcache,mode=max
 
                             rm -f "$DOCKER_CONFIG/config.json"
                         '''
@@ -334,29 +360,69 @@ spec:
         stage('Trivy Scan') {
             steps {
                 container('trivy') {
+                    sh '''
+                        set -eu
+                        echo "Running Trivy Vulnerability Scan on local image..."
+                        trivy image --cache-dir "$TRIVY_CACHE_DIR" --severity HIGH,CRITICAL --input image.tar
+                    '''
+                }
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                container('skopeo') {
                     withCredentials([usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'REG_USER',
-                        passwordVariable: 'REG_PASS'
+                        credentialsId: 'github-creds',
+                        usernameVariable: 'GH_USER',
+                        passwordVariable: 'GH_PAT'
                     )]) {
                         sh '''
                             set -eu
-                            mkdir -p "$DOCKER_CONFIG"
-                            AUTH_TOKEN=$(printf "%s:%s" "$REG_USER" "$REG_PASS" | base64 | tr -d '\\n')
-                            echo "{\\"auths\\":{\\"https://index.docker.io/v1/\\":{\\"auth\\":\\"$AUTH_TOKEN\\"}}}" > "$DOCKER_CONFIG/config.json"
-
-                            trivy image --cache-dir "$TRIVY_CACHE_DIR" --severity HIGH,CRITICAL --exit-code 1 docker.io/${DOCKER_IMAGE}:${BUILD_NUMBER}
-
-                            rm -f "$DOCKER_CONFIG/config.json"
+                            echo "Pushing image to GitHub Container Registry..."
+                            skopeo copy --dest-creds "${GH_USER}:${GH_PAT}" docker-archive:image.tar docker://${GHCR_IMAGE}:${BUILD_NUMBER}
+                            skopeo copy --dest-creds "${GH_USER}:${GH_PAT}" docker-archive:image.tar docker://${GHCR_IMAGE}:latest
                         '''
                     }
+                }
+            }
+        }
+
+        stage('Update Manifest & GitOps Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-creds',
+                    usernameVariable: 'GH_USER',
+                    passwordVariable: 'GH_PAT'
+                )]) {
+                    sh '''
+                        set -eu
+                        echo "Updating deployment manifest with image tag ${BUILD_NUMBER}..."
+                        sed -i "s|image: ${GHCR_IMAGE}:.*|image: ${GHCR_IMAGE}:${BUILD_NUMBER}|g" devops/k8s/deployment.yaml
+                        
+                        git config user.name "jenkins-bot"
+                        git config user.email "jenkins-bot@tarieky.com"
+                        
+                        git remote set-url origin "https://${GH_USER}:${GH_PAT}@github.com/aaboelala/tarieky.git"
+                        
+                        git add devops/k8s/deployment.yaml
+                        
+                        if ! git diff-index --quiet HEAD --; then
+                            git commit -m "Update image tag to ${BUILD_NUMBER} [skip ci]"
+                            git push origin HEAD:main
+                        else
+                            echo "No changes in deployment manifest."
+                        fi
+                    '''
                 }
             }
         }
     }
     
     post {
-        
+        always {
+            sh 'rm -f image.tar'
+        }
         success {
             echo "✅ Pipeline completed successfully!"
         }
@@ -365,5 +431,3 @@ spec:
         }
     }
 }
-
-
