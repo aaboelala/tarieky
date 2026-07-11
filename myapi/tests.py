@@ -327,7 +327,21 @@ class IssueListCreateViewTests(TestCase):
             "city": "Maadi",
             "governorate": "Cairo",
         }
-        self.client.post(self.url, payload, format="multipart")
+        resp = self.client.post(self.url, payload, format="multipart")
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        
+        # Query the database to get the created issue
+        issue = Issue.objects.filter(city="Maadi", description="new pothole in maadi").first()
+        self.assertIsNotNone(issue)
+        issue_id = issue.id
+
+        # Log in as supervisor and transition status to In Progress to trigger city alert
+        _create_supervisor(email="sup_test_notif@test.com")
+        _login(self.client, "sup_test_notif@test.com")
+        update_url = reverse("issue-status-update", args=[issue_id])
+        update_resp = self.client.patch(update_url, {"status": "In Progress"})
+        self.assertEqual(update_resp.status_code, 200)
+
         # other user in same city should have a notification
         self.assertTrue(
             Notification.objects.filter(
