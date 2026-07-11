@@ -15,10 +15,11 @@ spec:
       labels:
         app: tarieky
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: web
-          image: ghcr.io/aaboelala/tarieky:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/aaboelala/tarieky:10
           ports:
             - containerPort: 8000
               name: http
