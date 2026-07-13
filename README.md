@@ -10,55 +10,85 @@
                             |___/ 
 </pre>
 
-# 🛣️ Tarieky (طريقي) - Empowering Citizens, Transforming Cities.
+# 🛣️ Tarieky (طريقي) - Empowering Citizens, Transforming Cities
 
 [![Django](https://img.shields.io/badge/Backend-Django-092E20?style=for-the-badge&logo=django&logoColor=white)]()
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)]()
-[![Docker](https://img.shields.io/badge/DevOps-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)]()
+[![Jenkins](https://img.shields.io/badge/CI-Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)]()
+[![ArgoCD](https://img.shields.io/badge/CD-ArgoCD-EF7B4D?style=for-the-badge&logo=argo&logoColor=white)]()
+[![Kubernetes](https://img.shields.io/badge/Platform-Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)]()
+[![Firebase](https://img.shields.io/badge/Notifications-Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)]()
 
-*An Advanced Graduation Project redefining civic engagement and urban maintenance through scalable technology.*
+*An Advanced Platform Engineering & Backend solution redefining urban maintenance reporting through scalable technology and robust DevOps practices.*
 
 ---
-
 </div>
 
-## 🌌 The Vision & Mission
+## 🌌 Overview
 
 In rapidly growing cities, infrastructure maintenance can't rely solely on manual patrols. **Tarieky (طريقي)** shifts the paradigm by crowd-sourcing urban oversight. We equip every citizen with a digital megaphone to report potholes, broken streetlights, missing signs, and road hazards instantly. 
 
 By routing these reports directly to the relevant local authorities (Supervisors) based on precise geographic data, Tarieky accelerates repairs and improves city infrastructure.
 
----
+## 🏗️ Application Architecture & Core Features
 
-## 🏗️ Core Features
+Tarieky is built on a robust **Django & Django REST Framework (DRF)** backend, providing a scalable API for mobile and web clients.
 
-### 1. The Citizen Experience
-- **Frictionless Onboarding:** Users sign up securely using **OTP (One Time Password)** verification sent to their email.
-- **Context-Rich Reporting:** Citizens can report issues (e.g., `lighting`, `pothole`, `road_damage`), attach photos, and provide exact `latitude` and `longitude` coordinates.
-- **Real-time Notifications:** Integrated with **Firebase Cloud Messaging (FCM)** to keep citizens informed when their report status is updated.
-
-### 2. The Supervisor Workflow
-- **Geo-Fenced Authority:** Supervisors manage issues assigned to their specific `governorate` and `city`.
-- **Lifecycle Management:** Supervisors can update issue statuses: `Pending` ➡️ `In Progress` ➡️ `Resolved` (or `Rejected`).
-
----
-
-## 🛠️ Tech Stack & Architecture
-
-- **Backend Framework:** Django & Django REST Framework (DRF)
-- **Authentication:** JWT (JSON Web Tokens) with custom OTP flows.
-- **Database:** SQLite (Local) / PostgreSQL (Production via Neon DB).
-- **Deployment:** Dockerized application configured for platforms like Railway.
+### 🌟 Key Features
+- **Role-Based Workflows:** Distinct experiences for Citizens (reporters) and Supervisors (resolvers).
+- **Secure Authentication:** JWT (JSON Web Tokens) with a custom OTP (One Time Password) email verification flow for signup and password resets.
+- **Geospatial Processing:** Calculates Haversine distances to find nearby issues and filter reports by exact `latitude`, `longitude`, `city`, and `governorate`.
+- **Firebase Cloud Messaging (FCM) Integration:** 
+  - Real-time push notifications sent asynchronously when an issue's status changes.
+  - Smart broadcasting: Notifies the reporter directly, and optionally broadcasts "City Alerts" to other users in the same region.
+- **Tasdeeq (Verification) System:** Citizens can "upvote" or verify existing issues to prioritize them.
+- **Production-Ready DB:** SQLite for local dev, seamlessly switching to Neon PostgreSQL in production using `dj-database-url`.
 
 ---
 
-## 🚀 Running the Project Locally
+## 🚀 DevOps & Platform Engineering
+
+Tarieky is designed with a **Cloud-Native, GitOps-driven DevOps architecture**, demonstrating advanced platform engineering principles. The infrastructure is defined as code and leverages Kubernetes for high availability and scalability.
+
+### 🔄 CI/CD Pipeline Architecture
+The CI/CD pipeline is orchestrated using **Jenkins running natively on Kubernetes** with a dynamic, ephemeral agent setup.
+
+1. **Quality & SAST (Parallel Execution):**
+   - **Automated Testing:** Runs Python `coverage` to ensure high test quality (fails under 70%).
+   - **SonarQube Integration:** Performs Static Application Security Testing (SAST) for code quality and vulnerability scanning.
+2. **Software Composition Analysis (SCA):**
+   - **Trivy Filesystem Scan:** Scans the codebase for vulnerable dependencies before building.
+3. **Secure Rootless Image Build:**
+   - Uses **BuildKit daemon (`buildkitd`) in rootless mode** via `buildctl` to construct Docker images securely without requiring Docker socket access.
+   - Implements advanced layer caching using GitHub Container Registry (GHCR) to drastically reduce build times.
+4. **Image Security Scan:**
+   - **Trivy Image Scan:** Scans the built tarball for `HIGH` and `CRITICAL` vulnerabilities.
+5. **Secure Publishing:**
+   - Uses **Skopeo** to securely copy the image tarball directly to GHCR without a local Docker daemon.
+6. **GitOps Manifest Update:**
+   - The pipeline updates the Kubernetes `deployment.yaml` with the new image tag and pushes the changes back to the repository (`main` branch) automatically.
+
+### 🚢 Continuous Deployment with ArgoCD
+- Follows the **GitOps** philosophy.
+- **ArgoCD** continuously monitors the `devops/k8s` directory in the repository.
+- Automatically syncs, prunes, and self-heals the application state in the Kubernetes cluster to match the Git repository, ensuring the deployment is always in the desired state.
+
+### 🛡️ Kubernetes Security & Governance
+The cluster is hardened using Kubernetes security best practices:
+- **Namespaces & RBAC:** Isolated `jenkins` namespace with strict `Role` and `RoleBinding` definitions (Principle of Least Privilege).
+- **Network Policies:** Egress filtering to only allow necessary outbound traffic (DNS, HTTPS) and block access to internal cluster subnets.
+- **Resource Management:** Configured `ResourceQuota` and `LimitRange` to prevent noisy neighbor problems and ensure predictable scheduling.
+- **Security Contexts:** Jenkins controllers and agents run as non-root (`runAsUser: 1000`), drop all capabilities (`capabilities: drop: ["ALL"]`), and enforce `RuntimeDefault` seccomp profiles. Privilege escalation is strictly prohibited.
+
+---
+
+## 🛠️ Running the Project Locally
 
 ### Prerequisites
 - Python 3.11+
-- Docker (optional, for containerized run)
+- Docker
 
-### Local Setup (Without Docker)
+### Local Setup
 ```bash
 # 1. Clone the repository
 git clone <your-repo-url>
@@ -78,16 +108,14 @@ python manage.py runserver
 
 ### Docker Setup
 ```bash
-# Build and run the Docker container
+# Build the Docker container
 docker build -t tarieky-backend .
-docker run -p 8000:8000 tarieky-backend
+
+# Run the container
+docker run -p 8000:8000 --env-file .env tarieky-backend
 ```
 
 ---
-
-## 🎓 About This Graduation Project
-
-Tarieky represents a complete backend solution for modern urban maintenance reporting. It demonstrates the implementation of secure REST APIs, role-based access control, geospatial data handling, and push notification integrations.
 
 <div align="center">
   <br>
